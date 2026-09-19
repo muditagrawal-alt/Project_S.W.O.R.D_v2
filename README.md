@@ -106,6 +106,20 @@ python ensemble/predict_ensemble.py --source image.jpg --save \
     --weights-m weights/yolo26m_best.pt
 ```
 
+### Interactive Web Dashboard (Streamlit)
+
+Launch the full-featured threat detection HUD with image upload, video processing, and live camera recording:
+
+```bash
+streamlit run app.py
+```
+
+- **Image Analysis**: Upload images or load validation benchmarks for 4-panel multi-model inspection.
+- **Video Analysis**: Frame-by-frame WBF ensemble inference with progress tracking and MP4 download.
+- **Live Camera & Recording**: Real-time webcam feed with live WBF inference and on-demand video recording that burns in detections, timestamps, and threat telemetry.
+- **Benchmark Hub**: Interactive visualization of the 500-image evaluation report.
+
+
 ### Evaluation
 
 ```bash
