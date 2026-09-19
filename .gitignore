@@ -1,0 +1,49 @@
+# ─── Python ───
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ─── Virtual Environments ───
+venv/
+.venv/
+env/
+
+# ─── Model Weights (download separately) ───
+weights/*.pt
+*.pt
+!dataset/dataset.yaml
+
+# ─── Dataset Images & Labels (too large for git) ───
+dataset/yolo_dataset/
+dataset/raw/
+
+# ─── Training Artifacts ───
+results/paper_figures/
+results/training/
+*.zip
+
+# ─── IDE & OS ───
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ─── Jupyter ───
+.ipynb_checkpoints/
+*.ipynb
+
+# ─── Kaggle ───
+kaggle.json
+
+# ─── Old directories (pre-restructure, root-level only) ───
+/archive/
+/yolo26s/
+/yolo26m/
+/rt_detr/
+/resumed_run/
