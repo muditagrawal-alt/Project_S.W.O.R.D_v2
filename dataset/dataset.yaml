@@ -1,0 +1,15 @@
+path: /Users/muditagrawal/Projects/SWORD_v2/dataset/yolo_dataset
+train: images/train
+val: images/val
+nc: 10
+names:
+- Pistol
+- Shotgun
+- assault rifle
+- grenade
+- knife
+- sword
+- Sniper Dataset
+- SMG
+- rocket launcher
+- Machine gun
