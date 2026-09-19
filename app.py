@@ -7,7 +7,7 @@ Features:
 - Image Upload & 4-Panel Multi-Model Inspection
 - Video File Analysis with Progress Tracking & MP4 Export
 - Live Webcam Feed with Real-Time WBF Detection & Video Recording
-- Benchmark & Evaluation Hub
+- SOTA Benchmark & Evaluation Hub
 """
 
 import os
@@ -17,6 +17,9 @@ import tempfile
 import subprocess
 from pathlib import Path
 from typing import List, Dict, Tuple, Optional
+
+# Set OpenCV AVFoundation skip auth to prevent camera initialization hangs on macOS
+os.environ["OPENCV_AVFOUNDATION_SKIP_AUTH"] = "1"
 
 import cv2
 import numpy as np
@@ -53,8 +56,8 @@ st.markdown("""
     
     /* Top Banner / HUD Header */
     .hud-header {
-        background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9));
-        border: 1px solid rgba(56, 189, 248, 0.2);
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+        border: 1px solid rgba(56, 189, 248, 0.25);
         border-radius: 12px;
         padding: 20px 24px;
         margin-bottom: 24px;
@@ -79,7 +82,7 @@ st.markdown("""
     
     /* Threat Alert Banners */
     .threat-banner-critical {
-        background: linear-gradient(90deg, rgba(239, 68, 68, 0.25), rgba(185, 28, 28, 0.15));
+        background: linear-gradient(90deg, rgba(239, 68, 68, 0.3), rgba(185, 28, 28, 0.15));
         border-left: 6px solid #EF4444;
         padding: 14px 18px;
         border-radius: 8px;
@@ -91,7 +94,7 @@ st.markdown("""
         gap: 10px;
     }
     .threat-banner-safe {
-        background: linear-gradient(90deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.1));
+        background: linear-gradient(90deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.1));
         border-left: 6px solid #10B981;
         padding: 14px 18px;
         border-radius: 8px;
@@ -179,6 +182,15 @@ def draw_bounding_boxes(
     h, w = annotated.shape[:2]
     detections = []
 
+    if len(boxes) == 0:
+        if show_timestamp:
+            ts = time.strftime("%Y-%m-%d %H:%M:%S")
+            cv2.putText(
+                annotated, f"SWORD v2 LIVE | {ts}", (16, 28),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 240, 255), 2, cv2.LINE_AA
+            )
+        return annotated, detections
+
     for i in range(len(boxes)):
         score = float(scores[i])
         if score < conf_thr:
@@ -191,14 +203,20 @@ def draw_bounding_boxes(
             continue
 
         box = boxes[i]
-        x1, y1 = int(box[0] * w), int(box[1] * h)
-        x2, y2 = int(box[2] * w), int(box[3] * h)
+        # Robust handling of both normalized [0, 1] and absolute pixel coordinates
+        if (box[2] <= 1.05 and box[3] <= 1.05) and (w > 1 and h > 1):
+            x1, y1 = int(box[0] * w), int(box[1] * h)
+            x2, y2 = int(box[2] * w), int(box[3] * h)
+        else:
+            x1, y1 = int(box[0]), int(box[1])
+            x2, y2 = int(box[2]), int(box[3])
+
         x1, y1 = max(0, x1), max(0, y1)
         x2, y2 = min(w - 1, x2), min(h - 1, y2)
 
         color_bgr = get_class_color_bgr(cls_name)
 
-        # Draw box with clean border
+        # Draw box
         cv2.rectangle(annotated, (x1, y1), (x2, y2), color_bgr, 2, cv2.LINE_AA)
 
         # Label badge
@@ -343,7 +361,8 @@ if mode == "📸 Image Analysis":
             all_dets = detector.predict_and_compare(img_bgr)
         elapsed_ms = (time.time() - t0) * 1000
 
-        fused = all_dets["Ensemble (WBF)"]
+        # Retrieve fused detections
+        fused = all_dets.get("Ensemble (WBF)", all_dets.get("ensemble"))
         annotated_fused, detections = draw_bounding_boxes(
             img_bgr, fused["boxes"], fused["scores"], fused["labels"],
             conf_thr=conf_thr, allowed_classes=selected_classes
@@ -377,19 +396,22 @@ if mode == "📸 Image Analysis":
             st.markdown(f'<div class="metric-card"><div class="metric-value">{conf_thr:.2f}</div><div class="metric-label">Confidence Floor</div></div>', unsafe_allow_html=True)
 
         st.markdown("### Visual Inspection")
-        view_mode = st.radio("View Mode:", ["⚔️ Fused Ensemble Detection", "🔍 Multi-Model 4-Panel Comparison"], horizontal=True)
+        view_mode = st.radio("View Mode:", ["⚔️ Fused Ensemble Detection", "🔍 Multi-Model Comparison"], horizontal=True)
 
         if view_mode == "⚔️ Fused Ensemble Detection":
             st.image(annotated_fused_rgb, caption="SWORD v2 Weighted Boxes Fusion Output", use_container_width=True)
         else:
-            grid_cols = st.columns(len(all_dets))
-            for i, (model_name, det_data) in enumerate(all_dets.items()):
+            display_models = [k for k in all_dets.keys() if k != "ensemble"] + (["ensemble"] if "ensemble" in all_dets else [])
+            grid_cols = st.columns(len(display_models))
+            for i, model_name in enumerate(display_models):
+                det_data = all_dets[model_name]
+                label_display = "WBF Ensemble" if model_name == "ensemble" else model_name
                 with grid_cols[i]:
                     sub_ann, sub_dets = draw_bounding_boxes(
                         img_bgr, det_data["boxes"], det_data["scores"], det_data["labels"],
                         conf_thr=conf_thr, allowed_classes=selected_classes
                     )
-                    st.markdown(f"**{model_name}** ({len(sub_dets)} found)")
+                    st.markdown(f"**{label_display}** ({len(sub_dets)} found)")
                     st.image(cv2.cvtColor(sub_ann, cv2.COLOR_BGR2RGB), use_container_width=True)
 
         if len(detections) > 0:
@@ -457,7 +479,8 @@ elif mode == "🎥 Video File Inference":
                     break
 
                 if frame_idx % frame_skip == 0:
-                    res = detector.predict(frame)
+                    # Run WBF Ensemble prediction and extract index 0
+                    res = detector.predict(frame)[0]
                     ann_frame, dets = draw_bounding_boxes(
                         frame, res["boxes"], res["scores"], res["labels"],
                         conf_thr=conf_thr, allowed_classes=selected_classes,
@@ -509,87 +532,117 @@ elif mode == "🎥 Video File Inference":
 elif mode == "📹 Live Camera & Recording":
     st.markdown("""
     <div class="hud-header">
-        <h1 class="hud-title">📹 Live Camera Surveillance & Threat Recording</h1>
-        <div class="hud-subtitle">Real-time webcam inference with live Weighted Boxes Fusion and an on-demand video recording engine that exports annotated MP4 video with threat telemetry.</div>
+        <h1 class="hud-title">📹 Live Camera Threat Detection & Video Recording</h1>
+        <div class="hud-subtitle">Stream live video from your webcam or simulated CCTV stream, view real-time WBF weapon detections, and record telemetry-annotated MP4 video.</div>
     </div>
     """, unsafe_allow_html=True)
 
-    cam_tab1, cam_tab2 = st.tabs(["🔴 Real-Time Stream & Video Recorder", "📸 Browser Snapshot Camera"])
+    cam_tab1, cam_tab2 = st.tabs(["🔴 Live Stream & Telemetry Recorder", "📸 Browser Snapshot Camera"])
 
     with cam_tab1:
-        st.markdown("#### Live OpenCV Camera Stream")
+        st.markdown("#### Live Stream & Recording Controls")
 
-        c_col1, c_col2, c_col3 = st.columns([1, 1, 1])
-        with c_col1:
-            cam_index = st.number_input("Camera Index (0 for built-in webcam)", min_value=0, max_value=5, value=0)
-        with c_col2:
-            enable_recording = st.checkbox("🔴 Enable Telemetry Recording", value=True, help="Records the live webcam feed with detection bounding boxes burned in.")
-        with c_col3:
-            stream_resolution = st.selectbox("Resolution", ["640x480", "1280x720"], index=0)
+        c1, c2, c3 = st.columns([1, 1, 1])
+        with c1:
+            cam_source_type = st.selectbox(
+                "Video Source",
+                ["Webcam (Hardware Camera)", "Simulated CCTV Feed (Sample Stream)"],
+                index=0,
+            )
+            cam_index = st.number_input("Camera Device Index", min_value=0, max_value=5, value=0) if "Webcam" in cam_source_type else 0
+        with c2:
+            record_duration_sec = st.slider("Recording / Session Duration (seconds)", min_value=5, max_value=60, value=15)
+        with c3:
+            enable_rec = st.checkbox("🔴 Record Annotated Telemetry Video", value=True)
+            res_choice = st.selectbox("Resolution", ["640x480", "1280x720"], index=0)
 
-        stream_btn_col1, stream_btn_col2 = st.columns(2)
-        with stream_btn_col1:
-            start_stream = st.button("▶️ Start Live Camera", type="primary", use_container_width=True)
-        with stream_btn_col2:
-            stop_stream = st.button("⏹️ Stop Stream & Finalize Recording", use_container_width=True)
+        res_w, res_h = map(int, res_choice.split("x"))
+
+        st.markdown("---")
+        action_btn = st.button("🔴 Start Live Stream & Record", type="primary", use_container_width=True)
 
         video_placeholder = st.empty()
         alert_placeholder = st.empty()
         hud_placeholder = st.empty()
+        download_placeholder = st.empty()
 
-        if "camera_running" not in st.session_state:
-            st.session_state.camera_running = False
-        if "recorded_video_path" not in st.session_state:
-            st.session_state.recorded_video_path = None
-
-        if start_stream:
-            st.session_state.camera_running = True
-            st.session_state.recorded_video_path = None
-
-        if stop_stream:
-            st.session_state.camera_running = False
-
-        if st.session_state.camera_running:
-            cap = cv2.VideoCapture(int(cam_index))
-            if not cap.isOpened():
-                st.error(f"Cannot access camera index {cam_index}. Please verify your webcam permissions.")
-                st.session_state.camera_running = False
+        if action_btn:
+            # Initialize source
+            if "Webcam" in cam_source_type:
+                cap = cv2.VideoCapture(int(cam_index))
+                if not cap.isOpened():
+                    st.error(f"Cannot access camera index {cam_index}. If on macOS, ensure camera permissions are granted.")
+                    cap = None
             else:
-                res_w, res_h = map(int, stream_resolution.split("x"))
-                cap.set(cv2.CAP_PROP_FRAME_WIDTH, res_w)
-                cap.set(cv2.CAP_PROP_FRAME_HEIGHT, res_h)
+                # Simulated CCTV stream using sample validation images
+                sample_dir = PROJECT_ROOT / "dataset" / "yolo_dataset" / "images" / "val"
+                sample_files = sorted(list(sample_dir.glob("*.jpg")))[:30] if sample_dir.exists() else []
+                if not sample_files:
+                    st.error("No sample images found for simulated stream.")
+                    cap = None
+                else:
+                    cap = "SIMULATED"
 
-                video_writer = None
+            if cap is not None:
+                # Video writer setup
+                writer = None
                 raw_rec_path = None
-                if enable_recording:
-                    rec_file = tempfile.NamedTemporaryFile(delete=False, suffix="_rec_raw.mp4")
-                    rec_file.close()
-                    raw_rec_path = rec_file.name
+                if enable_rec:
+                    rec_raw = tempfile.NamedTemporaryFile(delete=False, suffix="_rec_raw.mp4")
+                    rec_raw.close()
+                    raw_rec_path = rec_raw.name
                     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-                    video_writer = cv2.VideoWriter(raw_rec_path, fourcc, 15.0, (res_w, res_h))
+                    writer = cv2.VideoWriter(raw_rec_path, fourcc, 15.0, (res_w, res_h))
 
-                fps_history = []
+                total_frames = int(record_duration_sec * 15)
                 frame_count = 0
+                fps_history = []
+                detected_threats_total = 0
+                t_start = time.time()
+
+                progress_bar = st.progress(0.0)
 
                 try:
-                    while st.session_state.camera_running:
+                    for i in range(total_frames):
                         t_frame = time.time()
-                        ret, frame = cap.read()
-                        if not ret:
-                            st.warning("Failed to grab frame from camera.")
-                            break
+                        
+                        if cap == "SIMULATED":
+                            img_path = sample_files[i % len(sample_files)]
+                            frame = cv2.imread(str(img_path))
+                            time.sleep(0.05)
+                        else:
+                            ret, frame = cap.read()
+                            if not ret:
+                                st.warning("Frame capture interrupted.")
+                                break
 
                         frame = cv2.resize(frame, (res_w, res_h))
 
-                        preds = detector.predict(frame)
+                        # Run WBF ensemble inference and unpack index 0
+                        preds = detector.predict(frame)[0]
                         ann_frame, dets = draw_bounding_boxes(
                             frame, preds["boxes"], preds["scores"], preds["labels"],
                             conf_thr=conf_thr, allowed_classes=selected_classes,
                             show_timestamp=True,
                         )
 
-                        if video_writer is not None:
-                            video_writer.write(ann_frame)
+                        if writer is not None:
+                            writer.write(ann_frame)
+
+                        if len(dets) > 0:
+                            detected_threats_total += len(dets)
+                            threat_str = ", ".join([f"{d['Class']} ({d['Confidence']:.1%})" for d in dets])
+                            alert_placeholder.markdown(f"""
+                            <div class="threat-banner-critical">
+                                🚨 <strong>LIVE THREAT DETECTED:</strong> {threat_str}
+                            </div>
+                            """, unsafe_allow_html=True)
+                        else:
+                            alert_placeholder.markdown("""
+                            <div class="threat-banner-safe">
+                                ✅ <strong>LIVE MONITORING SECURE:</strong> No weapons detected in current field of view.
+                            </div>
+                            """, unsafe_allow_html=True)
 
                         fps = 1.0 / max(0.001, (time.time() - t_frame))
                         fps_history.append(fps)
@@ -597,52 +650,40 @@ elif mode == "📹 Live Camera & Recording":
                             fps_history.pop(0)
                         avg_fps = sum(fps_history) / len(fps_history)
 
-                        ann_rgb = cv2.cvtColor(ann_frame, cv2.COLOR_BGR2RGB)
-                        video_placeholder.image(ann_rgb, channels="RGB", use_container_width=True)
-
-                        if len(dets) > 0:
-                            threat_str = ", ".join([f"{d['Class']} ({d['Confidence']:.1%})" for d in dets])
-                            alert_placeholder.markdown(f"""
-                            <div class="threat-banner-critical">
-                                🚨 <strong>LIVE THREAT IN PROGRESS:</strong> {threat_str}
-                            </div>
-                            """, unsafe_allow_html=True)
-                        else:
-                            alert_placeholder.markdown("""
-                            <div class="threat-banner-safe">
-                                ✅ <strong>LIVE MONITORING SECURE:</strong> No weapons detected in field of view.
-                            </div>
-                            """, unsafe_allow_html=True)
-
-                        rec_status = "🔴 RECORDING ACTIVE" if video_writer is not None else "⚪ RECORDING OFF"
-                        hud_placeholder.markdown(f"**Status:** `{rec_status}` | **FPS:** `{avg_fps:.1f}` | **Resolution:** `{res_w}x{res_h}` | **Frames:** `{frame_count}`")
-                        frame_count += 1
+                        # Update preview
+                        video_placeholder.image(cv2.cvtColor(ann_frame, cv2.COLOR_BGR2RGB), use_container_width=True)
+                        hud_placeholder.markdown(f"**Session:** `{i+1}/{total_frames} frames` | **FPS:** `{avg_fps:.1f}` | **Active Threats:** `{len(dets)}` | **Total Threats Logged:** `{detected_threats_total}`")
+                        progress_bar.progress(float(i + 1) / float(total_frames))
 
                 finally:
-                    cap.release()
-                    if video_writer is not None:
-                        video_writer.release()
-                        web_rec_file = tempfile.NamedTemporaryFile(delete=False, suffix="_rec_web.mp4")
+                    if cap != "SIMULATED" and cap is not None:
+                        cap.release()
+                    if writer is not None:
+                        writer.release()
+                        progress_bar.progress(1.0)
+                        st.success("Session complete! Finalizing recorded video encoding...")
+
+                        # Transcode to H.264 web MP4 via ffmpeg
+                        web_rec_file = tempfile.NamedTemporaryFile(delete=False, suffix="_web_rec.mp4")
                         web_rec_file.close()
                         subprocess.run([
                             "ffmpeg", "-y", "-i", raw_rec_path,
                             "-vcodec", "libx264", "-pix_fmt", "yuv420p",
                             "-preset", "fast", web_rec_file.name
                         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                        st.session_state.recorded_video_path = web_rec_file.name
 
-        if st.session_state.recorded_video_path and os.path.exists(st.session_state.recorded_video_path):
-            st.success("🎉 Telemetry video recording finalized and ready for download!")
-            with open(st.session_state.recorded_video_path, "rb") as f:
-                rec_bytes = f.read()
-            st.video(rec_bytes)
-            st.download_button(
-                label="💾 Download Recorded Camera Feed (MP4)",
-                data=rec_bytes,
-                file_name=f"sword_v2_live_recording_{time.strftime('%Y%m%d_%H%M%S')}.mp4",
-                mime="video/mp4",
-                use_container_width=True,
-            )
+                        with open(web_rec_file.name, "rb") as f:
+                            rec_bytes = f.read()
+
+                        download_placeholder.markdown("### 💾 Recorded Telemetry Video Ready")
+                        st.video(rec_bytes)
+                        st.download_button(
+                            label="💾 Download Recorded Telemetry Video (MP4)",
+                            data=rec_bytes,
+                            file_name=f"sword_v2_live_recording_{time.strftime('%Y%m%d_%H%M%S')}.mp4",
+                            mime="video/mp4",
+                            use_container_width=True,
+                        )
 
     with cam_tab2:
         st.markdown("#### Browser Snapshot Camera")
@@ -651,17 +692,18 @@ elif mode == "📹 Live Camera & Recording":
             snap_img = Image.open(snap).convert("RGB")
             snap_bgr = cv2.cvtColor(np.array(snap_img), cv2.COLOR_RGB2BGR)
 
-            with st.spinner("Analyzing snapshot..."):
-                snap_preds = detector.predict(snap_bgr)
+            with st.spinner("Analyzing snapshot with SWORD v2 Ensemble..."):
+                snap_preds = detector.predict(snap_bgr)[0]
             snap_ann, snap_dets = draw_bounding_boxes(
                 snap_bgr, snap_preds["boxes"], snap_preds["scores"], snap_preds["labels"],
-                conf_thr=conf_thr, allowed_classes=selected_classes
+                conf_thr=conf_thr, allowed_classes=selected_classes, show_timestamp=True,
             )
             st.image(cv2.cvtColor(snap_ann, cv2.COLOR_BGR2RGB), caption="Snapshot Detection", use_container_width=True)
             if len(snap_dets) > 0:
-                st.error(f"Weapons detected: {', '.join([d['Class'] for d in snap_dets])}")
+                threats = ", ".join([f"{d['Class']} ({d['Confidence']:.1%})" for d in snap_dets])
+                st.error(f"🚨 Weapons detected: {threats}")
             else:
-                st.success("No weapons detected.")
+                st.success("✅ No weapons detected.")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -670,8 +712,8 @@ elif mode == "📹 Live Camera & Recording":
 elif mode == "📊 Benchmark & Evaluation Hub":
     st.markdown("""
     <div class="hud-header">
-        <h1 class="hud-title">📊 Benchmark & Research Evaluation Hub</h1>
-        <div class="hud-subtitle">Explore official benchmark metrics computed across the 500-image stratified validation dataset on Apple Silicon (MPS).</div>
+        <h1 class="hud-title">📊 SOTA Benchmark & Research Evaluation Hub</h1>
+        <div class="hud-subtitle">Official benchmark metrics computed across the 500-image stratified validation dataset on Apple Silicon (MPS) with LaTeX export for research publication.</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -693,16 +735,21 @@ elif mode == "📊 Benchmark & Evaluation Hub":
             })
         bench_df = pd.DataFrame(rows)
 
-        st.markdown("### Official Benchmark Comparison")
+        st.markdown("### Official Benchmark Comparison Table")
         st.dataframe(
             bench_df.style.highlight_max(axis=0, subset=["mAP@50", "mAP@50:95", "Precision", "Recall", "F1 Score"], color="#0369A1"),
             use_container_width=True,
         )
 
-        st.markdown("### Metric Comparison Across Models")
+        st.markdown("### Metric Comparison Chart")
         chart_metric = st.selectbox("Select metric to plot:", ["mAP@50", "F1 Score", "Precision", "Recall", "mAP@50:95"])
         chart_data = bench_df.set_index("Architecture")[[chart_metric]]
         st.bar_chart(chart_data)
+
+        # LaTeX Code Generation
+        st.markdown("### 📄 LaTeX Table Code (Ready for Paper)")
+        latex_str = bench_df.to_latex(index=False, float_format="%.4f")
+        st.code(latex_str, language="latex")
 
         st.markdown("### 🏆 Architectural Insights")
         h1, h2, h3 = st.columns(3)
