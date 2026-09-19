@@ -21,9 +21,12 @@ weights/*.pt
 dataset/yolo_dataset/
 dataset/raw/
 
-# ─── Training Artifacts ───
-results/paper_figures/
-results/training/
+# ─── Results & Paper Artifacts ───
+results/
+ensemble/results/
+**/results/
+**/paper_figures/
+*.csv
 *.zip
 
 # ─── IDE & OS ───

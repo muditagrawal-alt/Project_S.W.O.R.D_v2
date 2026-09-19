@@ -142,7 +142,6 @@ python models/rt_detr/train_rtdetr.py --data dataset/dataset.yaml
 │   ├── yolo26s/                # YOLO26s training
 │   ├── yolo26m/                # YOLO26m training & resume
 │   └── rt_detr/                # RT-DETR-L training & resume
-├── results/evaluation/          # Evaluation reports (JSON)
 ├── weights/                     # Model weights (download separately)
 └── dataset/dataset.yaml         # Dataset configuration
 ```
