@@ -1,0 +1,15 @@
+\begin{table}
+\caption{Benchmark Results 2 (Optimized Non-Training SOTA)}
+\label{tab:main_benchmark_2}
+\begin{tabular}{llllllll}
+\toprule
+Architecture & mAP@50 & mAP@50:95 & Precision & Recall & F1-Score & Latency (ms) & Throughput (FPS) \\
+\midrule
+YOLO26s & 0.8010 & 0.6115 & 0.8652 & 0.8055 & 0.8314 & 63.0 & 15.9 \\
+YOLO26m & 0.7994 & 0.5975 & 0.9229 & 0.7680 & 0.8317 & 174.5 & 5.7 \\
+RT-DETR-L & 0.8472 & 0.6445 & 0.8880 & 0.8033 & 0.8405 & 230.6 & 4.3 \\
+Ensemble (2-Model) & 0.8169 & 0.5937 & 0.9208 & 0.8081 & 0.8575 & 239.2 & 4.2 \\
+Ensemble (3-Model Optimized) & 0.8518 & 0.6126 & 0.9259 & 0.8163 & 0.8650 & 481.6 & 2.1 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,15 @@
+\begin{table}
+\caption{SWORD v2 Multi-Model Ensemble Benchmark Comparison on 500 Stratified Validation Images}
+\label{tab:main_benchmark}
+\begin{tabular}{llllllll}
+\toprule
+Architecture & mAP@50 & mAP@50:95 & Precision & Recall & F1-Score & Latency (ms) & Throughput (FPS) \\
+\midrule
+YOLO26s & 0.8010 & 0.6115 & 0.8652 & 0.8055 & 0.8314 & 46.8 & 21.4 \\
+YOLO26m & 0.7994 & 0.5975 & 0.9229 & 0.7680 & 0.8317 & 125.7 & 8.0 \\
+RT-DETR-L & 0.8472 & 0.6445 & 0.8880 & 0.8033 & 0.8405 & 207.4 & 4.8 \\
+Ensemble (2-Model) & 0.8168 & 0.5958 & 0.9157 & 0.8105 & 0.8569 & 174.0 & 5.7 \\
+Ensemble (3-Model) & 0.8338 & 0.5892 & 0.8970 & 0.8170 & 0.8512 & 392.9 & 2.5 \\
+\bottomrule
+\end{tabular}
+\end{table}
