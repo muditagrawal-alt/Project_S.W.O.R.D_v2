@@ -158,12 +158,16 @@ def get_detector(use_3model: bool, device: str) -> SWORDEnsembleDetector:
     weights_s = str(PROJECT_ROOT / "weights" / "yolo26s_best.pt")
     weights_m = str(PROJECT_ROOT / "weights" / "yolo26m_best.pt")
     weights_rtdetr = str(PROJECT_ROOT / "weights" / "rtdetr_l_best.pt") if use_3model else None
+    params_file = str(PROJECT_ROOT / "results" / "optimized_parameters.json")
+    if not os.path.exists(params_file):
+        params_file = None
     
     detector = SWORDEnsembleDetector(
         weights_s=weights_s,
         weights_m=weights_m,
         weights_rtdetr=weights_rtdetr,
         device=device,
+        params_file=params_file,
     )
     return detector
 
@@ -713,51 +717,94 @@ elif mode == "📊 Benchmark & Evaluation Hub":
     st.markdown("""
     <div class="hud-header">
         <h1 class="hud-title">📊 SOTA Benchmark & Research Evaluation Hub</h1>
-        <div class="hud-subtitle">Official benchmark metrics computed across the 500-image stratified validation dataset on Apple Silicon (MPS) with LaTeX export for research publication.</div>
+        <div class="hud-subtitle">Direct empirical comparison between Benchmark Results 1 (Baseline) and Benchmark Results 2 (Non-Training SOTA Ensemble) on the 500-image stratified validation dataset on Apple Silicon (MPS).</div>
     </div>
     """, unsafe_allow_html=True)
 
-    report_path = PROJECT_ROOT / "results" / "evaluation" / "evaluation_report.json"
-    if report_path.exists():
-        import json
-        with open(report_path, "r") as fp:
-            bench_data = json.load(fp)
+    b1_file = PROJECT_ROOT / "results" / "benchmark_results_1" / "benchmark_results_1.json"
+    b2_file = PROJECT_ROOT / "results" / "benchmark_results_2" / "benchmark_results_2.json"
+    comp_md_file = PROJECT_ROOT / "results" / "benchmark_comparison" / "comparison_summary_report.md"
 
-        rows = []
-        for name, metrics in bench_data.items():
-            rows.append({
-                "Architecture": name,
-                "mAP@50": metrics.get("mAP50", 0.0),
-                "mAP@50:95": metrics.get("mAP50-95", 0.0),
-                "Precision": metrics.get("p", 0.0),
-                "Recall": metrics.get("r", 0.0),
-                "F1 Score": metrics.get("f1", 0.0),
-            })
-        bench_df = pd.DataFrame(rows)
+    bench_tab1, bench_tab2, bench_tab3 = st.tabs([
+        "🔬 Comparative Analysis (Run 1 vs Run 2)",
+        "🚀 Benchmark Results 2 (Optimized SOTA)",
+        "📋 Benchmark Results 1 (Baseline)",
+    ])
 
-        st.markdown("### Official Benchmark Comparison Table")
-        st.dataframe(
-            bench_df.style.highlight_max(axis=0, subset=["mAP@50", "mAP@50:95", "Precision", "Recall", "F1 Score"], color="#0369A1"),
-            use_container_width=True,
-        )
+    with bench_tab1:
+        st.markdown("### 🏆 Benchmark Comparison: Baseline vs Non-Training Optimized Ensemble")
+        if comp_md_file.exists():
+            with open(comp_md_file, "r") as fp:
+                comp_text = fp.read()
+            st.markdown(comp_text)
 
-        st.markdown("### Metric Comparison Chart")
-        chart_metric = st.selectbox("Select metric to plot:", ["mAP@50", "F1 Score", "Precision", "Recall", "mAP@50:95"])
-        chart_data = bench_df.set_index("Architecture")[[chart_metric]]
-        st.bar_chart(chart_data)
+            fig_comp = PROJECT_ROOT / "results" / "benchmark_comparison" / "fig_benchmark_comparison_1_vs_2.png"
+            fig_delta = PROJECT_ROOT / "results" / "benchmark_comparison" / "fig_per_class_delta.png"
+            fig_scale = PROJECT_ROOT / "results" / "benchmark_comparison" / "fig_scale_sensitivity_1_vs_2.png"
 
-        # LaTeX Code Generation
-        st.markdown("### 📄 LaTeX Table Code (Ready for Paper)")
-        latex_str = bench_df.to_latex(index=False, float_format="%.4f")
-        st.code(latex_str, language="latex")
+            c1, c2 = st.columns(2)
+            with c1:
+                if fig_comp.exists():
+                    st.image(str(fig_comp), caption="Macro Metrics Comparison: Run 1 vs Run 2", use_container_width=True)
+            with c2:
+                if fig_scale.exists():
+                    st.image(str(fig_scale), caption="Object Scale Robustness (SO-WDet)", use_container_width=True)
 
-        st.markdown("### 🏆 Architectural Insights")
-        h1, h2, h3 = st.columns(3)
-        with h1:
-            st.info("**Best F1 Score & Balance:**\n\n`2-Model Ensemble (YOLO26s + YOLO26m)` achieves the highest F1 score (**0.8563**) and highest recall (**0.8110**).")
-        with h2:
-            st.success("**Highest Precision:**\n\n`YOLO26m` delivers the lowest false alarm rate with a peak precision of **0.9229**.")
-        with h3:
-            st.warning("**Highest Standalone mAP:**\n\n`RT-DETR-L` leads standalone detectors with **0.8472 mAP@50** and **0.6445 mAP@50:95**.")
-    else:
-        st.info("No saved benchmark report found. Run `python ensemble/evaluate_ensemble.py --samples-per-class 50` to generate official results.")
+            if fig_delta.exists():
+                st.image(str(fig_delta), caption="Per-Class AP@50 Relative Gain (%)", use_container_width=True)
+        else:
+            st.info("Run `python ensemble/archive_and_compare_benchmarks.py` to generate comparative metrics.")
+
+    with bench_tab2:
+        st.markdown("### 🚀 Benchmark Results 2 (Optimized Non-Training SOTA)")
+        if b2_file.exists():
+            import json
+            with open(b2_file) as fp:
+                b2_data = json.load(fp)
+            rows2 = []
+            for name, metrics in b2_data["results"].items():
+                rows2.append({
+                    "Architecture": name,
+                    "mAP@50": f"{metrics.get('mAP50', 0.0):.4f}",
+                    "mAP@50:95": f"{metrics.get('mAP50-95', 0.0):.4f}",
+                    "Precision": f"{metrics.get('p', 0.0):.4f}",
+                    "Recall": f"{metrics.get('r', 0.0):.4f}",
+                    "F1 Score": f"{metrics.get('f1', 0.0):.4f}",
+                    "Latency (ms)": f"{b2_data['latencies'].get(name, 0.0):.1f}",
+                    "FPS": f"{(1000.0 / max(0.1, b2_data['latencies'].get(name, 1.0))):.1f}",
+                })
+            df2 = pd.DataFrame(rows2)
+            st.dataframe(df2, use_container_width=True)
+
+            fig2 = PROJECT_ROOT / "results" / "benchmark_results_2" / "fig_benchmark_comparison_2.png"
+            if fig2.exists():
+                st.image(str(fig2), caption="Benchmark Results 2 Summary", use_container_width=True)
+        else:
+            st.info("Benchmark Results 2 not found.")
+
+    with bench_tab3:
+        st.markdown("### 📋 Benchmark Results 1 (Baseline Initial Run)")
+        if b1_file.exists():
+            import json
+            with open(b1_file) as fp:
+                b1_data = json.load(fp)
+            rows1 = []
+            for name, metrics in b1_data["results"].items():
+                rows1.append({
+                    "Architecture": name,
+                    "mAP@50": f"{metrics.get('mAP50', 0.0):.4f}",
+                    "mAP@50:95": f"{metrics.get('mAP50-95', 0.0):.4f}",
+                    "Precision": f"{metrics.get('p', 0.0):.4f}",
+                    "Recall": f"{metrics.get('r', 0.0):.4f}",
+                    "F1 Score": f"{metrics.get('f1', 0.0):.4f}",
+                    "Latency (ms)": f"{b1_data['latencies'].get(name, 0.0):.1f}",
+                    "FPS": f"{(1000.0 / max(0.1, b1_data['latencies'].get(name, 1.0))):.1f}",
+                })
+            df1 = pd.DataFrame(rows1)
+            st.dataframe(df1, use_container_width=True)
+
+            fig1 = PROJECT_ROOT / "results" / "benchmark_results_1" / "fig_benchmark_comparison_1.png"
+            if fig1.exists():
+                st.image(str(fig1), caption="Benchmark Results 1 Summary", use_container_width=True)
+        else:
+            st.info("Benchmark Results 1 not found.")

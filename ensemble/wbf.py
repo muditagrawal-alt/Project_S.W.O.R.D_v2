@@ -12,7 +12,7 @@ IoU-based box grouping, and coordinate normalization.
 """
 
 import numpy as np
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict
 
 
 def _iou(box_a: np.ndarray, box_b: np.ndarray) -> float:
@@ -50,32 +50,43 @@ def weighted_boxes_fusion(
     scores_list: List[np.ndarray],
     labels_list: List[np.ndarray],
     weights: Optional[List[float]] = None,
+    class_weights: Optional[Dict[int, List[float]]] = None,
     iou_thr: float = 0.55,
     skip_box_thr: float = 0.001,
     conf_type: str = "avg",
     allows_overflow: bool = False,
+    consensus_boost: float = 0.15,
+    outlier_thr: float = 0.35,
+    outlier_penalty: float = 0.65,
+    class_conf_thrs: Optional[Dict[int, float]] = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Weighted Boxes Fusion (WBF) for ensembling predictions from multiple models.
     
-    Unlike NMS/Soft-NMS which discard lower-confidence boxes, WBF merges overlapping
-    boxes by computing the confidence-weighted average of their coordinates, producing
-    tighter and more accurate bounding boxes.
+    Supports global model weights, class-adaptive model weights, consensus-boosted
+    confidence scoring, and per-class confidence threshold filtering.
     
     Args:
         boxes_list: List of arrays, each shape (N_i, 4) with [x1, y1, x2, y2]
                     coordinates **normalized to [0, 1]**.
         scores_list: List of arrays, each shape (N_i,) with confidence scores.
         labels_list: List of arrays, each shape (N_i,) with integer class labels.
-        weights: Per-model weight factors. Default: equal weights (1.0 each).
+        weights: Global per-model weight factors. Default: equal weights (1.0 each).
+        class_weights: Optional dict mapping class_id -> list of weights per model.
+                       Overrides global weights for specified classes.
         iou_thr: IoU threshold for grouping boxes as belonging to the same object.
         skip_box_thr: Minimum score threshold; discard boxes below this before fusion.
         conf_type: How to compute fused confidence:
-            - "avg": Average confidence over all models (default, penalizes single-model detections).
+            - "avg": Average confidence over all models.
+            - "consensus_boosted": Boosts confidence when all models agree, penalizes isolated low-conf detections.
             - "max": Maximum confidence of any contributing box.
             - "box_and_model_avg": Weighted average factoring in model weights.
             - "absent_model_aware_avg": Average that accounts for models that didn't detect the object.
         allows_overflow: If True, don't clip box coordinates to [0, 1].
+        consensus_boost: Multiplicative boost factor for full consensus (e.g. 0.15 = +15%).
+        outlier_thr: Threshold below which single-model detections are penalized as outliers.
+        outlier_penalty: Multiplicative penalty for single-model outlier detections (e.g. 0.65).
+        class_conf_thrs: Optional dict mapping class_id -> min confidence threshold for output.
     
     Returns:
         Tuple of (fused_boxes, fused_scores, fused_labels):
@@ -92,10 +103,18 @@ def weighted_boxes_fusion(
         f"weights length ({len(weights)}) must match number of models ({n_models})"
     )
     
-    # Normalize weights so they sum to N_models (preserves averaging semantics)
+    # Normalize global weights so they sum to N_models (preserves averaging semantics)
     weight_sum = sum(weights)
-    weights = [w * n_models / weight_sum for w in weights]
+    norm_global_weights = [w * n_models / weight_sum for w in weights] if weight_sum > 0 else [1.0] * n_models
     
+    # Normalize per-class weights if provided
+    norm_class_weights = {}
+    if class_weights is not None:
+        for c, c_w in class_weights.items():
+            assert len(c_w) == n_models, f"class_weights[{c}] length must match {n_models}"
+            c_sum = sum(c_w)
+            norm_class_weights[c] = [w * n_models / c_sum for w in c_w] if c_sum > 0 else norm_global_weights
+
     # Collect all boxes with metadata: [x1, y1, x2, y2, score, model_idx, original_idx]
     all_boxes = []
     all_scores = []
@@ -116,8 +135,18 @@ def weighted_boxes_fusion(
         scores = scores[mask]
         labels = labels[mask]
         
-        # Apply model weight to scores
-        weighted_scores = scores * weights[model_i]
+        if len(boxes) == 0:
+            continue
+            
+        # Apply class-specific or global model weights
+        if norm_class_weights:
+            weighted_scores = np.empty_like(scores)
+            for i in range(len(scores)):
+                cls_id = int(labels[i])
+                cls_w = norm_class_weights.get(cls_id, norm_global_weights)
+                weighted_scores[i] = scores[i] * cls_w[model_i]
+        else:
+            weighted_scores = scores * norm_global_weights[model_i]
         
         all_boxes.append(boxes)
         all_scores.append(weighted_scores)
@@ -217,6 +246,20 @@ def weighted_boxes_fusion(
             if conf_type == "avg":
                 # Average over all models (penalizes if not all models agree)
                 merged_score = total_conf / n_models
+            elif conf_type == "consensus_boosted":
+                n_contributing = len(model_contributions)
+                base_score = total_conf / n_models
+                if n_contributing >= n_models and n_models > 1:
+                    # Consensus boost when all models detect
+                    merged_score = min(1.0, base_score * (1.0 + consensus_boost))
+                elif n_contributing == 1 and n_models > 1:
+                    # Single model detection
+                    if base_score < outlier_thr:
+                        merged_score = base_score * outlier_penalty
+                    else:
+                        merged_score = base_score
+                else:
+                    merged_score = base_score
             elif conf_type == "max":
                 merged_score = max_conf
             elif conf_type == "box_and_model_avg":
@@ -237,6 +280,11 @@ def weighted_boxes_fusion(
             else:
                 raise ValueError(f"Unknown conf_type: {conf_type}")
             
+            # Apply per-class confidence threshold if specified
+            if class_conf_thrs is not None and cls in class_conf_thrs:
+                if merged_score < class_conf_thrs[cls]:
+                    continue
+
             if not allows_overflow:
                 merged_box = np.clip(merged_box, 0.0, 1.0)
             

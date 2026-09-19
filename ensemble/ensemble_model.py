@@ -70,6 +70,13 @@ class SWORDEnsembleDetector:
         conf_thr: float = 0.25,
         fusion_mode: str = "wbf",
         device: Optional[str] = None,
+        params_file: Optional[str] = None,
+        conf_type: str = "avg",
+        consensus_boost: float = 0.15,
+        outlier_thr: float = 0.35,
+        outlier_penalty: float = 0.65,
+        class_weights: Optional[Dict[int, List[float]]] = None,
+        class_conf_thrs: Optional[Dict[int, float]] = None,
     ):
         """
         Initialize the ensemble detector.
@@ -84,7 +91,15 @@ class SWORDEnsembleDetector:
             conf_thr: Minimum confidence for final output detections.
             fusion_mode: "wbf" or "nms".
             device: "cuda", "mps", "cpu", or None (auto-detect).
+            params_file: Optional path to JSON file containing optimized non-training parameters.
+            conf_type: "avg" or "consensus_boosted".
+            consensus_boost: Multiplicative boost factor for full consensus.
+            outlier_thr: Score cutoff below which single-model detections are penalized.
+            outlier_penalty: Multiplicative penalty for single-model outliers.
+            class_weights: Optional per-class model weights dict.
+            class_conf_thrs: Optional per-class output confidence threshold dict.
         """
+        import json
         from ultralytics import YOLO, RTDETR
 
         if device is not None:
@@ -99,6 +114,12 @@ class SWORDEnsembleDetector:
         self.iou_thr = iou_thr
         self.conf_thr = conf_thr
         self.fusion_mode = fusion_mode
+        self.conf_type = conf_type
+        self.consensus_boost = consensus_boost
+        self.outlier_thr = outlier_thr
+        self.outlier_penalty = outlier_penalty
+        self.class_weights = class_weights
+        self.class_conf_thrs = class_conf_thrs
         self.models = []
         self.model_names = []
 
@@ -128,9 +149,29 @@ class SWORDEnsembleDetector:
             # Default weights: slightly favor larger models
             self.model_weights = [1.0, 1.1, 1.1][:n]
 
+        # Load optimized parameters JSON if supplied or auto-discover
+        if params_file is not None and Path(params_file).exists():
+            with open(params_file) as fp:
+                p_data = json.load(fp)
+            if "class_weights" in p_data and n == 3:
+                self.class_weights = {int(k): v for k, v in p_data["class_weights"].items()}
+            if "class_conf_thrs" in p_data:
+                self.class_conf_thrs = {int(k): v for k, v in p_data["class_conf_thrs"].items()}
+            if "iou_thr" in p_data:
+                self.iou_thr = p_data["iou_thr"]
+            if "conf_type" in p_data:
+                self.conf_type = p_data["conf_type"]
+            if "consensus_boost" in p_data:
+                self.consensus_boost = p_data["consensus_boost"]
+            if "outlier_thr" in p_data:
+                self.outlier_thr = p_data["outlier_thr"]
+            if "outlier_penalty" in p_data:
+                self.outlier_penalty = p_data["outlier_penalty"]
+            print(f"  Loaded optimized parameters from: {params_file}")
+
         print(f"\nEnsemble ready ({n} models): {', '.join(self.model_names)}")
-        print(f"  mode={fusion_mode}, weights={self.model_weights}, "
-              f"iou_thr={iou_thr}, conf_thr={conf_thr}, device={self.device}")
+        print(f"  mode={fusion_mode}, conf_type={self.conf_type}, weights={self.model_weights}, "
+              f"iou_thr={self.iou_thr}, conf_thr={self.conf_thr}, device={self.device}")
 
     @property
     def n_models(self) -> int:
@@ -243,9 +284,14 @@ class SWORDEnsembleDetector:
                     scores_list=scores_list,
                     labels_list=labels_list,
                     weights=self.model_weights,
+                    class_weights=self.class_weights,
                     iou_thr=self.iou_thr,
                     skip_box_thr=0.001,
-                    conf_type="avg",
+                    conf_type=self.conf_type,
+                    consensus_boost=self.consensus_boost,
+                    outlier_thr=self.outlier_thr,
+                    outlier_penalty=self.outlier_penalty,
+                    class_conf_thrs=self.class_conf_thrs,
                 )
             elif self.fusion_mode == "nms":
                 all_boxes = np.concatenate(boxes_list, axis=0)
@@ -257,11 +303,12 @@ class SWORDEnsembleDetector:
             else:
                 raise ValueError(f"Unknown fusion_mode: {self.fusion_mode}")
 
-            # Apply confidence threshold
-            mask = fused_scores >= self.conf_thr
-            fused_boxes = fused_boxes[mask]
-            fused_scores = fused_scores[mask]
-            fused_labels = fused_labels[mask]
+            # Apply global confidence threshold fallback if class_conf_thrs was not set
+            if self.class_conf_thrs is None:
+                mask = fused_scores >= self.conf_thr
+                fused_boxes = fused_boxes[mask]
+                fused_scores = fused_scores[mask]
+                fused_labels = fused_labels[mask]
 
             # Denormalize back to pixel coordinates
             if len(fused_boxes) > 0:
