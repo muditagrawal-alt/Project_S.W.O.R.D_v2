@@ -16,7 +16,7 @@ import time
 import tempfile
 import subprocess
 from pathlib import Path
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Optional, Any
 
 # Set OpenCV AVFoundation skip auth to prevent camera initialization hangs on macOS
 os.environ["OPENCV_AVFOUNDATION_SKIP_AUTH"] = "1"
@@ -34,6 +34,12 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from ensemble.ensemble_model import SWORDEnsembleDetector, CLASS_NAMES
 from ensemble.wbf import weighted_boxes_fusion
+
+try:
+    from pose_pipeline import RTMPosePipeline
+    POSE_MODULE_AVAILABLE = True
+except ImportError:
+    POSE_MODULE_AVAILABLE = False
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PAGE CONFIG & CUSTOM HUD STYLING
@@ -158,18 +164,44 @@ def get_detector(use_3model: bool, device: str) -> SWORDEnsembleDetector:
     weights_s = str(PROJECT_ROOT / "weights" / "yolo26s_best.pt")
     weights_m = str(PROJECT_ROOT / "weights" / "yolo26m_best.pt")
     weights_rtdetr = str(PROJECT_ROOT / "weights" / "rtdetr_l_best.pt") if use_3model else None
-    params_file = str(PROJECT_ROOT / "results" / "optimized_parameters.json")
-    if not os.path.exists(params_file):
-        params_file = None
+    params_file = PROJECT_ROOT / "PAPER" / "raw_results_json" / "optimized_parameters.json"
+    if not params_file.exists():
+        params_file = PROJECT_ROOT / "results" / "optimized_parameters.json"
+    params_file_path = str(params_file) if params_file.exists() else None
     
     detector = SWORDEnsembleDetector(
         weights_s=weights_s,
         weights_m=weights_m,
         weights_rtdetr=weights_rtdetr,
         device=device,
-        params_file=params_file,
+        params_file=params_file_path,
     )
     return detector
+
+
+@st.cache_resource(show_spinner=False)
+def get_pose_pipeline(device: str = "cpu") -> Optional[Any]:
+    if not POSE_MODULE_AVAILABLE:
+        return None
+    try:
+        pipeline = RTMPosePipeline(mode="balanced", device=device)
+        return pipeline if pipeline.is_ready else None
+    except Exception as e:
+        print(f"Warning initializing RTMPose: {e}")
+        return None
+
+
+def get_ffmpeg_binary() -> Optional[str]:
+    """Find ffmpeg binary via imageio_ffmpeg or system PATH."""
+    try:
+        import imageio_ffmpeg
+        exe = imageio_ffmpeg.get_ffmpeg_exe()
+        if exe and os.path.exists(exe):
+            return exe
+    except Exception:
+        pass
+    import shutil
+    return shutil.which("ffmpeg")
 
 
 def draw_bounding_boxes(
@@ -286,10 +318,19 @@ with st.sidebar:
     )
     use_3model = "3-Model" in model_config
 
+    import torch
+    device_choices = ["cpu", "cuda (NVIDIA)", "mps (Apple Silicon GPU)"]
+    if torch.cuda.is_available():
+        default_dev_idx = 1
+    elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        default_dev_idx = 2
+    else:
+        default_dev_idx = 0
+
     device_option = st.selectbox(
         "Hardware Acceleration",
-        ["mps (Apple Silicon GPU)", "cpu", "cuda (NVIDIA)"],
-        index=0,
+        device_choices,
+        index=default_dev_idx,
     )
     device = device_option.split()[0]
 
@@ -303,11 +344,18 @@ with st.sidebar:
     )
 
     st.markdown("---")
+    st.markdown("### 🤸 Human Pose & Telemetry")
+    enable_pose = st.checkbox("Enable RTMPose-m Pose Extraction", value=False)
+    pose_kpt_thr = 0.35
+    if enable_pose:
+        pose_kpt_thr = st.slider("Pose Keypoint Confidence Floor", min_value=0.15, max_value=0.80, value=0.35, step=0.05)
+
+    st.markdown("---")
     st.markdown("<small>Project S.W.O.R.D v2 — Research & Defense AI</small>", unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# LOAD DETECTOR
+# LOAD DETECTOR & POSE PIPELINE
 # ─────────────────────────────────────────────────────────────────────────────
 with st.spinner("Initializing SWORD v2 Ensemble Detector..."):
     try:
@@ -317,6 +365,13 @@ with st.spinner("Initializing SWORD v2 Ensemble Detector..."):
     except Exception as e:
         st.error(f"Error loading models: {e}. Please ensure weights are available in `weights/`.")
         st.stop()
+
+pose_pipeline = None
+if enable_pose:
+    with st.spinner("Initializing RTMPose-m Pretrained Engine..."):
+        pose_pipeline = get_pose_pipeline(device=device)
+        if pose_pipeline:
+            pose_pipeline.kpt_thr = pose_kpt_thr
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -371,6 +426,13 @@ if mode == "📸 Image Analysis":
             img_bgr, fused["boxes"], fused["scores"], fused["labels"],
             conf_thr=conf_thr, allowed_classes=selected_classes
         )
+
+        pose_telemetry = []
+        if enable_pose and pose_pipeline:
+            with st.spinner("Extracting Human Pose & Biometrics (RTMPose-m)..."):
+                pose_telemetry = pose_pipeline.process_frame(img_bgr)
+                annotated_fused = pose_pipeline.annotate(annotated_fused, pose_telemetry)
+
         annotated_fused_rgb = cv2.cvtColor(annotated_fused, cv2.COLOR_BGR2RGB)
 
         # Threat Alert Banner
@@ -427,6 +489,46 @@ if mode == "📸 Image Analysis":
             } for d in detections])
             st.dataframe(df, use_container_width=True)
 
+        if enable_pose and len(pose_telemetry) > 0:
+            st.markdown("### 🤸 Biomechanical & Pose Telemetry (RTMPose-m)")
+            for person in pose_telemetry:
+                p_id = person["person_id"]
+                orient = person["body_orientation"]
+                angles = person["arm_angles"]
+                hw = person["hand_to_waist"]
+
+                with st.expander(f"👤 Subject #{p_id + 1} Biometrics (Facing: {orient['facing_direction']})", expanded=True):
+                    c_t1, c_t2, c_t3, c_t4 = st.columns(4)
+                    with c_t1:
+                        st.metric("Facing Direction", orient["facing_direction"])
+                        st.caption(f"Shoulder Tilt: {orient['shoulder_tilt_deg']}°")
+                    with c_t2:
+                        l_ang = f"{angles['left_arm_angle_deg']:.1f}°" if angles['left_arm_angle_deg'] is not None else "N/A"
+                        r_ang = f"{angles['right_arm_angle_deg']:.1f}°" if angles['right_arm_angle_deg'] is not None else "N/A"
+                        st.metric("Left Arm Angle", l_ang)
+                        st.caption(f"Right Arm Angle: {r_ang}")
+                    with c_t3:
+                        l_dist = f"{hw['left_wrist_dist_px']:.0f} px" if hw['left_wrist_dist_px'] is not None else "N/A"
+                        r_dist = f"{hw['right_wrist_dist_px']:.0f} px" if hw['right_wrist_dist_px'] is not None else "N/A"
+                        st.metric("Left Hand-to-Waist", l_dist)
+                        st.caption(f"Right Hand-to-Waist: {r_dist}")
+                    with c_t4:
+                        reach_badge = "⚠️ REACH DETECTED" if hw["hands_near_waist"] else "NORMAL"
+                        st.metric("Waist Proximity Zone", reach_badge)
+
+                    # Extracted Target Joints Table
+                    st.markdown("**Extracted Target Joint Coordinates & Confidence**")
+                    joints_df = pd.DataFrame([
+                        {
+                            "Joint": name.replace("_", " ").title(),
+                            "Detected": "✅" if data["detected"] else "❌",
+                            "Coordinates (X, Y)": f"({data['x']:.1f}, {data['y']:.1f})",
+                            "Confidence": f"{data['confidence']:.1%}",
+                        }
+                        for name, data in person["joints"].items()
+                    ])
+                    st.dataframe(joints_df, use_container_width=True)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # MODE 2: VIDEO FILE INFERENCE
@@ -477,6 +579,9 @@ elif mode == "🎥 Video File Inference":
             threat_count = 0
             t_start = time.time()
 
+            if enable_pose and pose_pipeline:
+                pose_pipeline.reset_tracking()
+
             while cap.isOpened() and frame_idx < max_frames_to_process:
                 ret, frame = cap.read()
                 if not ret:
@@ -490,6 +595,10 @@ elif mode == "🎥 Video File Inference":
                         conf_thr=conf_thr, allowed_classes=selected_classes,
                         show_timestamp=True,
                     )
+                    if enable_pose and pose_pipeline:
+                        pose_telemetry = pose_pipeline.process_frame(frame, timestamp=frame_idx / fps)
+                        ann_frame = pose_pipeline.annotate(ann_frame, pose_telemetry)
+
                     writer.write(ann_frame)
                     if len(dets) > 0:
                         threat_count += 1
@@ -511,14 +620,23 @@ elif mode == "🎥 Video File Inference":
 
             final_mp4 = tempfile.NamedTemporaryFile(delete=False, suffix="_web.mp4")
             final_mp4.close()
-            ffmpeg_cmd = [
-                "ffmpeg", "-y", "-i", out_temp.name,
-                "-vcodec", "libx264", "-pix_fmt", "yuv420p",
-                "-preset", "fast", final_mp4.name
-            ]
-            subprocess.run(ffmpeg_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            ffmpeg_exe = get_ffmpeg_binary()
+            video_output_path = out_temp.name
 
-            with open(final_mp4.name, "rb") as fp:
+            if ffmpeg_exe:
+                ffmpeg_cmd = [
+                    ffmpeg_exe, "-y", "-i", out_temp.name,
+                    "-vcodec", "libx264", "-pix_fmt", "yuv420p",
+                    "-preset", "fast", final_mp4.name
+                ]
+                try:
+                    subprocess.run(ffmpeg_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+                    if os.path.exists(final_mp4.name) and os.path.getsize(final_mp4.name) > 0:
+                        video_output_path = final_mp4.name
+                except Exception as e:
+                    print(f"Warning: FFmpeg transcoding failed ({e}), falling back to direct video stream.")
+
+            with open(video_output_path, "rb") as fp:
                 video_bytes = fp.read()
             st.video(video_bytes)
 
@@ -607,6 +725,9 @@ elif mode == "📹 Live Camera & Recording":
                 progress_bar = st.progress(0.0)
 
                 try:
+                    if enable_pose and pose_pipeline:
+                        pose_pipeline.reset_tracking()
+
                     for i in range(total_frames):
                         t_frame = time.time()
                         
@@ -629,6 +750,10 @@ elif mode == "📹 Live Camera & Recording":
                             conf_thr=conf_thr, allowed_classes=selected_classes,
                             show_timestamp=True,
                         )
+
+                        if enable_pose and pose_pipeline:
+                            pose_telemetry = pose_pipeline.process_frame(frame)
+                            ann_frame = pose_pipeline.annotate(ann_frame, pose_telemetry)
 
                         if writer is not None:
                             writer.write(ann_frame)
@@ -667,16 +792,25 @@ elif mode == "📹 Live Camera & Recording":
                         progress_bar.progress(1.0)
                         st.success("Session complete! Finalizing recorded video encoding...")
 
-                        # Transcode to H.264 web MP4 via ffmpeg
+                        # Transcode to H.264 web MP4 via ffmpeg if available
                         web_rec_file = tempfile.NamedTemporaryFile(delete=False, suffix="_web_rec.mp4")
                         web_rec_file.close()
-                        subprocess.run([
-                            "ffmpeg", "-y", "-i", raw_rec_path,
-                            "-vcodec", "libx264", "-pix_fmt", "yuv420p",
-                            "-preset", "fast", web_rec_file.name
-                        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        ffmpeg_exe = get_ffmpeg_binary()
+                        final_rec_path = raw_rec_path
 
-                        with open(web_rec_file.name, "rb") as f:
+                        if ffmpeg_exe:
+                            try:
+                                subprocess.run([
+                                    ffmpeg_exe, "-y", "-i", raw_rec_path,
+                                    "-vcodec", "libx264", "-pix_fmt", "yuv420p",
+                                    "-preset", "fast", web_rec_file.name
+                                ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+                                if os.path.exists(web_rec_file.name) and os.path.getsize(web_rec_file.name) > 0:
+                                    final_rec_path = web_rec_file.name
+                            except Exception as e:
+                                print(f"Warning: FFmpeg transcoding failed ({e}), using raw recording.")
+
+                        with open(final_rec_path, "rb") as f:
                             rec_bytes = f.read()
 
                         download_placeholder.markdown("### 💾 Recorded Telemetry Video Ready")
@@ -702,6 +836,10 @@ elif mode == "📹 Live Camera & Recording":
                 snap_bgr, snap_preds["boxes"], snap_preds["scores"], snap_preds["labels"],
                 conf_thr=conf_thr, allowed_classes=selected_classes, show_timestamp=True,
             )
+            if enable_pose and pose_pipeline:
+                snap_pose = pose_pipeline.process_frame(snap_bgr)
+                snap_ann = pose_pipeline.annotate(snap_ann, snap_pose)
+
             st.image(cv2.cvtColor(snap_ann, cv2.COLOR_BGR2RGB), caption="Snapshot Detection", use_container_width=True)
             if len(snap_dets) > 0:
                 threats = ", ".join([f"{d['Class']} ({d['Confidence']:.1%})" for d in snap_dets])
@@ -721,9 +859,17 @@ elif mode == "📊 Benchmark & Evaluation Hub":
     </div>
     """, unsafe_allow_html=True)
 
-    b1_file = PROJECT_ROOT / "results" / "benchmark_results_1" / "benchmark_results_1.json"
-    b2_file = PROJECT_ROOT / "results" / "benchmark_results_2" / "benchmark_results_2.json"
-    comp_md_file = PROJECT_ROOT / "results" / "benchmark_comparison" / "comparison_summary_report.md"
+    b1_file = PROJECT_ROOT / "PAPER" / "raw_results_json" / "benchmark_results_1.json"
+    if not b1_file.exists():
+        b1_file = PROJECT_ROOT / "results" / "benchmark_results_1" / "benchmark_results_1.json"
+
+    b2_file = PROJECT_ROOT / "PAPER" / "raw_results_json" / "benchmark_results_2.json"
+    if not b2_file.exists():
+        b2_file = PROJECT_ROOT / "results" / "benchmark_results_2" / "benchmark_results_2.json"
+
+    comp_md_file = PROJECT_ROOT / "PAPER" / "reports_and_summaries" / "comparison_summary_report.md"
+    if not comp_md_file.exists():
+        comp_md_file = PROJECT_ROOT / "results" / "benchmark_comparison" / "comparison_summary_report.md"
 
     bench_tab1, bench_tab2, bench_tab3 = st.tabs([
         "🔬 Comparative Analysis (Run 1 vs Run 2)",
@@ -738,9 +884,17 @@ elif mode == "📊 Benchmark & Evaluation Hub":
                 comp_text = fp.read()
             st.markdown(comp_text)
 
-            fig_comp = PROJECT_ROOT / "results" / "benchmark_comparison" / "fig_benchmark_comparison_1_vs_2.png"
-            fig_delta = PROJECT_ROOT / "results" / "benchmark_comparison" / "fig_per_class_delta.png"
-            fig_scale = PROJECT_ROOT / "results" / "benchmark_comparison" / "fig_scale_sensitivity_1_vs_2.png"
+            fig_comp = PROJECT_ROOT / "PAPER" / "figures" / "benchmark_comparison" / "fig_benchmark_comparison_1_vs_2.png"
+            if not fig_comp.exists():
+                fig_comp = PROJECT_ROOT / "results" / "benchmark_comparison" / "fig_benchmark_comparison_1_vs_2.png"
+
+            fig_delta = PROJECT_ROOT / "PAPER" / "figures" / "per_class_analysis" / "fig_per_class_delta.png"
+            if not fig_delta.exists():
+                fig_delta = PROJECT_ROOT / "results" / "benchmark_comparison" / "fig_per_class_delta.png"
+
+            fig_scale = PROJECT_ROOT / "PAPER" / "figures" / "scale_sensitivity_sowdet" / "fig_scale_sensitivity_1_vs_2.png"
+            if not fig_scale.exists():
+                fig_scale = PROJECT_ROOT / "results" / "benchmark_comparison" / "fig_scale_sensitivity_1_vs_2.png"
 
             c1, c2 = st.columns(2)
             with c1:
@@ -776,7 +930,9 @@ elif mode == "📊 Benchmark & Evaluation Hub":
             df2 = pd.DataFrame(rows2)
             st.dataframe(df2, use_container_width=True)
 
-            fig2 = PROJECT_ROOT / "results" / "benchmark_results_2" / "fig_benchmark_comparison_2.png"
+            fig2 = PROJECT_ROOT / "PAPER" / "figures" / "benchmark_comparison" / "fig_benchmark_comparison_2.png"
+            if not fig2.exists():
+                fig2 = PROJECT_ROOT / "results" / "benchmark_results_2" / "fig_benchmark_comparison_2.png"
             if fig2.exists():
                 st.image(str(fig2), caption="Benchmark Results 2 Summary", use_container_width=True)
         else:
@@ -803,7 +959,9 @@ elif mode == "📊 Benchmark & Evaluation Hub":
             df1 = pd.DataFrame(rows1)
             st.dataframe(df1, use_container_width=True)
 
-            fig1 = PROJECT_ROOT / "results" / "benchmark_results_1" / "fig_benchmark_comparison_1.png"
+            fig1 = PROJECT_ROOT / "PAPER" / "figures" / "benchmark_comparison" / "fig_benchmark_comparison_1.png"
+            if not fig1.exists():
+                fig1 = PROJECT_ROOT / "results" / "benchmark_results_1" / "fig_benchmark_comparison_1.png"
             if fig1.exists():
                 st.image(str(fig1), caption="Benchmark Results 1 Summary", use_container_width=True)
         else:
