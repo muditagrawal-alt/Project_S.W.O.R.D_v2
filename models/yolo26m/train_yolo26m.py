@@ -7,9 +7,11 @@ Designed for Kaggle Tesla T4 GPU but works on any CUDA/MPS/CPU device.
 
 Training Configuration:
     - Architecture: YOLO v11/26 Medium (~21.7M parameters)
-    - Epochs: 300 (early stopping patience=5, converges at ~40)
-    - Image Size: 640x640
-    - Optimizer: AdamW with cosine annealing LR
+    - Epochs: 300 with early stopping (patience=50 by default). The published runs used patience=5 and
+      stopped while mAP was still rising (best epoch = last epoch), i.e. under-trained.
+    - Image Size: 640x640, batch 16 (fixed so runs are comparable; the published runs used batch=-1,
+      which auto-selected 11 for YOLO26s and 5 for YOLO26m on a Kaggle T4)
+    - Optimizer: Ultralytics 'auto' (it chooses optimizer and initial LR itself), cosine LR schedule
     - Augmentation: Mosaic (disabled last 10 epochs)
 
 Usage:
@@ -48,7 +50,7 @@ def train(args):
         epochs=args.epochs,
         patience=args.patience,
         imgsz=640,
-        batch=-1,               # Auto batch size based on GPU memory
+        batch=args.batch,       # fixed batch for comparable runs (auto-batch picked 5 for YOLO26m)
         device=device,
         cos_lr=True,
         lr0=0.01,
@@ -61,6 +63,8 @@ def train(args):
         save_period=10,
         plots=True,
         verbose=True,
+        seed=args.seed,
+        deterministic=True,
         project=args.project,
         name=args.name,
     )
@@ -73,7 +77,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train YOLO26m on SWORD v2")
     parser.add_argument("--data", type=str, default="dataset/dataset.yaml")
     parser.add_argument("--epochs", type=int, default=300)
-    parser.add_argument("--patience", type=int, default=5)
+    parser.add_argument("--patience", type=int, default=50,
+                        help="Early stopping patience (5 stopped the published run at epoch 40 while still improving)")
+    parser.add_argument("--batch", type=int, default=16, help="Batch size (-1 = Ultralytics auto-batch)")
+    parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument("--device", type=str, default="auto")
     parser.add_argument("--project", type=str, default="runs")
     parser.add_argument("--name", type=str, default="yolo26m_sword")
