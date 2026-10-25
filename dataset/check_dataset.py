@@ -1,7 +1,10 @@
 import os
 from glob import glob
 
-base_dir = "/Users/muditagrawal/Projects/SWORD_v2/Weapons_Dataset_30k_10_Classes"
+from pathlib import Path
+
+# Raw class folders (the old hard-coded path no longer exists after the repo restructure).
+base_dir = str(Path(__file__).resolve().parent / "raw" / "Weapons_Dataset_30k_10_Classes")
 
 total_images = 0
 total_labels = 0
