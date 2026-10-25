@@ -497,7 +497,8 @@ if mode == "📸 Image Analysis":
                 angles = person["arm_angles"]
                 hw = person["hand_to_waist"]
 
-                with st.expander(f"👤 Subject #{p_id + 1} Biometrics (Facing: {orient['facing_direction']})", expanded=True):
+                subject = f"Track {p_id}" if person.get("id_persistent") else f"Subject #{p_id + 1}"
+                with st.expander(f"👤 {subject} Biometrics (Facing: {orient['facing_direction']})", expanded=True):
                     c_t1, c_t2, c_t3, c_t4 = st.columns(4)
                     with c_t1:
                         st.metric("Facing Direction", orient["facing_direction"])

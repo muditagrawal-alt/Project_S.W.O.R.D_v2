@@ -93,6 +93,9 @@ SKELETON_PAIRS = [
     (14, 16), # Right knee -> Right ankle
 ]
 
+# Heuristic threshold for "hand near waist" (torso lengths). Not validated on labelled data.
+WAIST_REACH_NORM = 0.65
+
 # Visual Palette (BGR)
 COLOR_LEFT_ARM = (0, 255, 255)     # Yellow
 COLOR_RIGHT_ARM = (255, 180, 0)    # Cyan-Blue
@@ -197,15 +200,11 @@ def analyze_hand_to_waist_distance(
             if torso_l and torso_l > 5.0:
                 res["right_wrist_dist_norm"] = d_r / torso_l
 
-        # Threat/tactical indicator: Hand reaching within waist holster zone
-        # (normalized distance < 0.65 or < 55 pixels)
-        for dist_norm, dist_px in [
-            (res["left_wrist_dist_norm"], res["left_wrist_dist_px"]),
-            (res["right_wrist_dist_norm"], res["right_wrist_dist_px"]),
-        ]:
-            if dist_norm is not None and dist_norm < 0.65:
-                res["hands_near_waist"] = True
-            elif dist_px is not None and dist_px < 55.0:
+        # Heuristic indicator (not validated): a wrist within 0.65 torso lengths of the waist centre.
+        # Only the torso-normalised distance is used — a fixed pixel radius (the old 55 px fallback) depends
+        # on image resolution and camera distance. Unknown torso length -> indicator stays False.
+        for dist_norm in (res["left_wrist_dist_norm"], res["right_wrist_dist_norm"]):
+            if dist_norm is not None and dist_norm < WAIST_REACH_NORM:
                 res["hands_near_waist"] = True
 
     return res
@@ -341,6 +340,10 @@ class RTMPosePipeline:
         device: str = "cpu",
         kpt_thr: float = 0.35,
         velocity_ema_alpha: float = 0.60,
+        track_people: bool = True,
+        max_gap_s: float = 0.5,
+        stale_s: float = 2.0,
+        load_detector: bool = True,
     ):
         """
         Initialize the RTMPose pipeline with pretrained RTMPose-m model.
@@ -351,6 +354,12 @@ class RTMPosePipeline:
             device: 'cpu', 'cuda', or 'mps'.
             kpt_thr: Confidence threshold to consider a joint detected.
             velocity_ema_alpha: Smoothing factor for wrist velocity.
+            track_people: Give people persistent IDs with ByteTrack (required for meaningful wrist velocity;
+                without it person_id is just the detection order in each frame and velocity is not computed).
+            max_gap_s: A wrist unseen for longer than this restarts its velocity estimate.
+            stale_s: Per-person state is dropped after this long without a detection.
+            load_detector: Load rtmlib's YOLOX person detector. Set False when people come from an external
+                tracker (Phase 2 pipeline) and only process_tracked() is used — saves memory and a ~100 MB download.
         """
         self.mode = mode
         self.backend = backend
@@ -361,12 +370,19 @@ class RTMPosePipeline:
         print(f"[RTMPosePipeline] Initializing RTMPose-m (mode='{mode}', backend='{backend}', device='{device}')...")
         try:
             import rtmlib
-            self.model = rtmlib.Body(
-                mode=mode,
-                backend=backend,
-                device=device,
-                to_openpose=False,
-            )
+            if load_detector:
+                self.model = rtmlib.Body(
+                    mode=mode,
+                    backend=backend,
+                    device=device,
+                    to_openpose=False,
+                )
+            else:  # pose model only; process_tracked() supplies the person boxes
+                from types import SimpleNamespace
+                cfg = rtmlib.Body.MODE[mode]
+                self.model = SimpleNamespace(det_model=None, pose_model=rtmlib.RTMPose(
+                    cfg["pose"], model_input_size=cfg["pose_input_size"], backend=backend, device=device))
+                track_people = False
             self._ready = True
             print("[RTMPosePipeline] Pretrained RTMPose-m loaded successfully.")
         except Exception as e:
@@ -374,10 +390,14 @@ class RTMPosePipeline:
             self.model = None
             self._ready = False
 
-        # State tracking for inter-frame velocity computation
-        self.prev_wrists: Dict[int, Dict[str, Tuple[float, float]]] = {}
-        self.prev_velocities: Dict[int, Dict[str, float]] = {}
-        self.prev_timestamp: Optional[float] = None
+        # Per-track state for inter-frame velocity: {track_id: {"t": last time, "l"/"r": (x, y, t), "ema_l"/"ema_r": px/s}}
+        self.max_gap_s = max_gap_s
+        self.stale_s = stale_s
+        self.track_state: Dict[int, Dict[str, Any]] = {}
+        self.tracker = None
+        if track_people:
+            from tracking.tracker import ByteTrackWrapper
+            self.tracker = ByteTrackWrapper()
 
     @property
     def is_ready(self) -> bool:
@@ -385,9 +405,9 @@ class RTMPosePipeline:
 
     def reset_tracking(self):
         """Reset inter-frame tracking state (e.g. at start of new video)."""
-        self.prev_wrists.clear()
-        self.prev_velocities.clear()
-        self.prev_timestamp = None
+        self.track_state.clear()
+        if self.tracker is not None:
+            self.tracker.reset()
 
     def extract_target_joints(self, kpts: np.ndarray, scores: np.ndarray) -> Dict[str, Dict[str, Any]]:
         """
@@ -413,78 +433,103 @@ class RTMPosePipeline:
         kpts: np.ndarray,
         scores: np.ndarray,
         current_time: Optional[float] = None,
+        id_persistent: bool = True,
+        torso_length: Optional[float] = None,
     ) -> Dict[str, Any]:
         """
-        Calculate inter-frame wrist displacement and velocity (px/sec).
-        Applies Exponential Moving Average (EMA) smoothing to reduce jitter.
+        Wrist speed between observations of the SAME tracked person (px/s, EMA-smoothed), plus a scale-free
+        version in torso lengths per second.
+
+        `person_idx` must be a persistent track ID. The previous implementation keyed this state by the
+        person's position in each frame's detection list, so with two or more people the "velocity" was often
+        measured between different people. When IDs are not persistent, velocity is reported as None.
         """
         if current_time is None:
             current_time = time.time()
+        res: Dict[str, Any] = {
+            "left_wrist_speed_px_s": None, "right_wrist_speed_px_s": None,
+            "left_wrist_speed_norm": None, "right_wrist_speed_norm": None,
+            "left_wrist_disp_px": None, "right_wrist_disp_px": None,
+            "left_wrist_vector": None, "right_wrist_vector": None,
+            "id_persistent": id_persistent,
+        }
+        if not id_persistent:
+            return res
+        st = self.track_state.setdefault(person_idx, {})
+        for side, idx in (("left", 9), ("right", 10)):
+            key = side[0]
+            if scores[idx] < self.kpt_thr:
+                continue  # unseen this frame: keep the last observation, no new estimate
+            x, y = float(kpts[idx, 0]), float(kpts[idx, 1])
+            prev = st.get(key)
+            if prev is not None and 0.0 < current_time - prev[2] <= self.max_gap_s:
+                dt = current_time - prev[2]
+                dx, dy = x - prev[0], y - prev[1]
+                speed = math.hypot(dx, dy) / dt
+                ema = st.get("ema_" + key)
+                speed = speed if ema is None else self.velocity_ema_alpha * speed + (1.0 - self.velocity_ema_alpha) * ema
+                st["ema_" + key] = speed
+                res[f"{side}_wrist_disp_px"] = round(math.hypot(dx, dy), 1)
+                res[f"{side}_wrist_speed_px_s"] = round(speed, 1)
+                res[f"{side}_wrist_vector"] = (round(dx, 1), round(dy, 1))
+                if torso_length and torso_length > 5.0:
+                    res[f"{side}_wrist_speed_norm"] = round(speed / torso_length, 3)
+            else:
+                st.pop("ema_" + key, None)  # first sighting or long gap: restart the estimate
+            st[key] = (x, y, current_time)
+        st["t"] = current_time
+        return res
 
-        res = {
-            "left_wrist_speed_px_s": 0.0,
-            "right_wrist_speed_px_s": 0.0,
-            "left_wrist_disp_px": 0.0,
-            "right_wrist_disp_px": 0.0,
-            "left_wrist_vector": (0.0, 0.0),
-            "right_wrist_vector": (0.0, 0.0),
+    def _purge_stale(self, now: float) -> None:
+        for tid in [t for t, st in self.track_state.items() if now - st.get("t", now) > self.stale_s]:
+            del self.track_state[tid]
+
+    def _telemetry(self, pid: int, kpts: np.ndarray, scs: np.ndarray, t: float, id_persistent: bool,
+                   bbox: Optional[List[float]] = None) -> Dict[str, Any]:
+        hand_waist = analyze_hand_to_waist_distance(kpts, scs, self.kpt_thr)
+        valid_mask = scs >= self.kpt_thr
+        if bbox is None:
+            if np.any(valid_mask):
+                v = kpts[valid_mask]
+                bbox = [int(v[:, 0].min()), int(v[:, 1].min()), int(v[:, 0].max()), int(v[:, 1].max())]
+            else:
+                bbox = [0, 0, 0, 0]
+        return {
+            "person_id": pid,
+            "id_persistent": id_persistent,
+            "bbox": [int(b) for b in bbox],
+            "keypoints_raw": kpts,
+            "scores_raw": scs,
+            "joints": self.extract_target_joints(kpts, scs),
+            "hand_to_waist": hand_waist,
+            "arm_angles": analyze_arm_angles(kpts, scs, self.kpt_thr),
+            "wrist_velocity": self.compute_wrist_velocity(pid, kpts, scs, t, id_persistent, hand_waist["torso_length"]),
+            "body_orientation": analyze_body_orientation(kpts, scs, self.kpt_thr),
         }
 
-        # Determine delta time (seconds)
-        dt = 0.033  # fallback ~30 fps
-        if self.prev_timestamp is not None:
-            time_diff = current_time - self.prev_timestamp
-            if 0.001 < time_diff < 1.0:
-                dt = time_diff
-
-        prev_person_wrists = self.prev_wrists.get(person_idx, {})
-        prev_speeds = self.prev_velocities.get(person_idx, {"l": 0.0, "r": 0.0})
-
-        curr_wrists = {}
-
-        # Left wrist (idx 9)
-        if scores[9] >= self.kpt_thr:
-            curr_l = (float(kpts[9, 0]), float(kpts[9, 1]))
-            curr_wrists["l"] = curr_l
-            if "l" in prev_person_wrists:
-                prev_l = prev_person_wrists["l"]
-                dx = curr_l[0] - prev_l[0]
-                dy = curr_l[1] - prev_l[1]
-                disp = math.hypot(dx, dy)
-                speed_raw = disp / dt
-                # EMA smoothing
-                speed_smooth = (self.velocity_ema_alpha * speed_raw) + (
-                    (1.0 - self.velocity_ema_alpha) * prev_speeds["l"]
-                )
-                res["left_wrist_disp_px"] = round(disp, 1)
-                res["left_wrist_speed_px_s"] = round(speed_smooth, 1)
-                res["left_wrist_vector"] = (round(dx, 1), round(dy, 1))
-                prev_speeds["l"] = speed_smooth
-
-        # Right wrist (idx 10)
-        if scores[10] >= self.kpt_thr:
-            curr_r = (float(kpts[10, 0]), float(kpts[10, 1]))
-            curr_wrists["r"] = curr_r
-            if "r" in prev_person_wrists:
-                prev_r = prev_person_wrists["r"]
-                dx = curr_r[0] - prev_r[0]
-                dy = curr_r[1] - prev_r[1]
-                disp = math.hypot(dx, dy)
-                speed_raw = disp / dt
-                # EMA smoothing
-                speed_smooth = (self.velocity_ema_alpha * speed_raw) + (
-                    (1.0 - self.velocity_ema_alpha) * prev_speeds["r"]
-                )
-                res["right_wrist_disp_px"] = round(disp, 1)
-                res["right_wrist_speed_px_s"] = round(speed_smooth, 1)
-                res["right_wrist_vector"] = (round(dx, 1), round(dy, 1))
-                prev_speeds["r"] = speed_smooth
-
-        # Update cache
-        self.prev_wrists[person_idx] = curr_wrists
-        self.prev_velocities[person_idx] = prev_speeds
-
-        return res
+    def process_tracked(
+        self,
+        img_bgr: np.ndarray,
+        tracks: List[Dict[str, Any]],
+        timestamp: Optional[float] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Top-down pose for people that are already tracked (Phase 2): tracks = [{"track_id": int, "bbox": [x1, y1, x2, y2]}].
+        Telemetry is keyed by track_id, so wrist velocity follows the same person across frames.
+        """
+        if not self._ready or self.model is None or img_bgr is None:
+            return []
+        t = timestamp if timestamp is not None else time.time()
+        self._purge_stale(t)
+        if not tracks:  # rtmlib would otherwise run the pose model on the whole image
+            return []
+        try:
+            keypoints_all, scores_all = self.model.pose_model(img_bgr, bboxes=[tr["bbox"] for tr in tracks])
+        except Exception as e:
+            print(f"[RTMPosePipeline] Inference error: {e}")
+            return []
+        return [self._telemetry(tr["track_id"], keypoints_all[i], scores_all[i], t, True, tr["bbox"])
+                for i, tr in enumerate(tracks)]
 
     def process_frame(
         self,
@@ -493,80 +538,35 @@ class RTMPosePipeline:
     ) -> List[Dict[str, Any]]:
         """
         Process a single image or video frame:
-        1. Run RTMPose-m model inference
-        2. Extract target joints (wrists, elbows, shoulders, hips, knees, ankles)
-        3. Compute all biomechanical metrics:
-           - hand_to_waist
-           - arm_angles
-           - wrist_velocity
-           - body_orientation
+        1. Detect people (RTMPose's YOLOX detector) and, if tracking is enabled, give them persistent IDs (ByteTrack)
+        2. Run RTMPose-m on each person box
+        3. Compute hand-to-waist distance, arm angles, wrist velocity (tracked people only) and body orientation
 
-        Returns list of telemetry dictionaries (one per detected person).
+        Returns list of telemetry dictionaries (one per detected person). `person_id` is the track ID when
+        tracking is enabled (`id_persistent` True); otherwise it is just the detection order in this frame.
         """
         if not self._ready or self.model is None or img_bgr is None:
             return []
-
-        curr_time = timestamp if timestamp is not None else time.time()
-
+        t = timestamp if timestamp is not None else time.time()
+        if getattr(self.model, "det_model", None) is None:
+            print("[RTMPosePipeline] No person detector loaded (load_detector=False): use process_tracked().")
+            return []
+        if self.tracker is not None:
+            try:
+                bboxes = np.asarray(self.model.det_model(img_bgr), dtype=np.float32).reshape(-1, 4)
+            except Exception as e:
+                print(f"[RTMPosePipeline] Detection error: {e}")
+                return []
+            tracks = self.tracker.update(bboxes, np.ones(len(bboxes), dtype=np.float32))
+            return self.process_tracked(img_bgr, tracks, t)
         try:
             keypoints_all, scores_all = self.model(img_bgr)
         except Exception as e:
             print(f"[RTMPosePipeline] Inference error: {e}")
             return []
-
         if keypoints_all is None or len(keypoints_all) == 0:
-            self.prev_timestamp = curr_time
             return []
-
-        telemetry_results = []
-
-        for p_idx in range(len(keypoints_all)):
-            kpts = keypoints_all[p_idx]  # (17, 2)
-            scs = scores_all[p_idx]      # (17,)
-
-            # 1. Target Joints (wrists, elbows, shoulders, hips, knees, ankles)
-            target_joints = self.extract_target_joints(kpts, scs)
-
-            # 2. Hand-to-waist distance
-            hand_waist = analyze_hand_to_waist_distance(kpts, scs, self.kpt_thr)
-
-            # 3. Arm angles (elbow interior angle)
-            arm_angles = analyze_arm_angles(kpts, scs, self.kpt_thr)
-
-            # 4. Wrist velocity between frames
-            wrist_vel = self.compute_wrist_velocity(p_idx, kpts, scs, curr_time)
-
-            # 5. Body orientation
-            orientation = analyze_body_orientation(kpts, scs, self.kpt_thr)
-
-            # Person bounding box approximation from keypoints
-            valid_mask = scs >= self.kpt_thr
-            if np.any(valid_mask):
-                valid_kpts = kpts[valid_mask]
-                bbox = [
-                    int(np.min(valid_kpts[:, 0])),
-                    int(np.min(valid_kpts[:, 1])),
-                    int(np.max(valid_kpts[:, 0])),
-                    int(np.max(valid_kpts[:, 1])),
-                ]
-            else:
-                bbox = [0, 0, 0, 0]
-
-            telemetry = {
-                "person_id": p_idx,
-                "bbox": bbox,
-                "keypoints_raw": kpts,
-                "scores_raw": scs,
-                "joints": target_joints,
-                "hand_to_waist": hand_waist,
-                "arm_angles": arm_angles,
-                "wrist_velocity": wrist_vel,
-                "body_orientation": orientation,
-            }
-            telemetry_results.append(telemetry)
-
-        self.prev_timestamp = curr_time
-        return telemetry_results
+        return [self._telemetry(i, keypoints_all[i], scores_all[i], t, False) for i in range(len(keypoints_all))]
 
     def annotate(
         self,
@@ -668,14 +668,14 @@ class RTMPosePipeline:
             # 5. Draw Wrist Velocity Indicators
             if draw_velocities:
                 vel = person["wrist_velocity"]
-                if vel["left_wrist_speed_px_s"] > 25.0 and scs[9] >= self.kpt_thr:
+                if (vel["left_wrist_speed_px_s"] or 0.0) > 25.0 and vel["left_wrist_vector"] and scs[9] >= self.kpt_thr:
                     lx, ly = int(kpts[9, 0]), int(kpts[9, 1])
                     vx, vy = int(vel["left_wrist_vector"][0]), int(vel["left_wrist_vector"][1])
                     cv2.arrowedLine(annotated, (lx, ly), (lx + vx * 2, ly + vy * 2), COLOR_VELOCITY, 2, cv2.LINE_AA)
                     cv2.putText(annotated, f"{vel['left_wrist_speed_px_s']:.0f}px/s", (lx - 30, ly + 20),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 1, cv2.LINE_AA)
 
-                if vel["right_wrist_speed_px_s"] > 25.0 and scs[10] >= self.kpt_thr:
+                if (vel["right_wrist_speed_px_s"] or 0.0) > 25.0 and vel["right_wrist_vector"] and scs[10] >= self.kpt_thr:
                     rx, ry = int(kpts[10, 0]), int(kpts[10, 1])
                     vx, vy = int(vel["right_wrist_vector"][0]), int(vel["right_wrist_vector"][1])
                     cv2.arrowedLine(annotated, (rx, ry), (rx + vx * 2, ry + vy * 2), COLOR_VELOCITY, 2, cv2.LINE_AA)
@@ -712,18 +712,18 @@ class RTMPosePipeline:
             orient_text = f"Facing: {orient['facing_direction']} | Tilt: {orient['shoulder_tilt_deg']}°"
             cv2.putText(annotated, orient_text, (20, 54), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (226, 232, 240), 1, cv2.LINE_AA)
 
-            l_ang = f"{angles['left_arm_angle_deg']:.0f}°" if angles['left_arm_angle_deg'] else "N/A"
-            r_ang = f"{angles['right_arm_angle_deg']:.0f}°" if angles['right_arm_angle_deg'] else "N/A"
+            l_ang = f"{angles['left_arm_angle_deg']:.0f}°" if angles['left_arm_angle_deg'] is not None else "N/A"
+            r_ang = f"{angles['right_arm_angle_deg']:.0f}°" if angles['right_arm_angle_deg'] is not None else "N/A"
             angles_text = f"Elbow Angles: L {l_ang} | R {r_ang}"
             cv2.putText(annotated, angles_text, (20, 74), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (226, 232, 240), 1, cv2.LINE_AA)
 
-            hw_l = f"{hw['left_wrist_dist_px']:.0f}px" if hw['left_wrist_dist_px'] else "N/A"
-            hw_r = f"{hw['right_wrist_dist_px']:.0f}px" if hw['right_wrist_dist_px'] else "N/A"
+            hw_l = f"{hw['left_wrist_dist_px']:.0f}px" if hw['left_wrist_dist_px'] is not None else "N/A"
+            hw_r = f"{hw['right_wrist_dist_px']:.0f}px" if hw['right_wrist_dist_px'] is not None else "N/A"
             hw_text = f"Hand-to-Waist: L {hw_l} | R {hw_r}"
             cv2.putText(annotated, hw_text, (20, 94), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (226, 232, 240), 1, cv2.LINE_AA)
 
-            vel_l = f"{vel['left_wrist_speed_px_s']:.0f}"
-            vel_r = f"{vel['right_wrist_speed_px_s']:.0f}"
+            vel_l = f"{vel['left_wrist_speed_px_s']:.0f}" if vel['left_wrist_speed_px_s'] is not None else "--"
+            vel_r = f"{vel['right_wrist_speed_px_s']:.0f}" if vel['right_wrist_speed_px_s'] is not None else "--"
             vel_text = f"Wrist Velocity: L {vel_l} | R {vel_r} px/s"
             cv2.putText(annotated, vel_text, (20, 114), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (226, 232, 240), 1, cv2.LINE_AA)
 
