@@ -1,4 +1,4 @@
-ultralytics>=8.3.0
+ultralytics>=8.4.0  # YOLO26 checkpoints require >= 8.4
 torch>=2.0.0
 numpy>=1.24.0
 opencv-python>=4.8.0
@@ -10,3 +10,9 @@ pillow>=10.0.0
 rtmlib>=0.0.16
 onnxruntime>=1.16.0
 imageio-ffmpeg>=0.5.0
+faster-coco-eval>=1.6.0
+lap>=0.5.12
+# Phase 6 service (FastAPI + WebSocket + SQL); PostgreSQL also needs a driver, e.g. psycopg[binary]
+fastapi>=0.110
+uvicorn[standard]>=0.29
+sqlalchemy>=2.0
