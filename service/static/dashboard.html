@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S.W.O.R.D. Operator</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --panel: #ffffff; --text: #1d2330; --muted: #657083; --line: #dfe3ea;
+    --normal: #2f9e55; --elevated: #e0a800; --suspicious: #e8590c; --wre: #d6336c; --accent: #3b5bdb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #11141a; --panel: #1a1f28; --text: #e6e9ef; --muted: #96a0b3; --line: #2b3240; --accent: #748ffc; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  header h1 { font-size: 16px; margin: 0; letter-spacing: .04em; }
+  header .sub { color: var(--muted); font-size: 12px; }
+  #conn { margin-left: auto; font-size: 12px; color: var(--muted); }
+  main { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; padding: 16px; max-width: 1400px; margin: 0 auto; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; }
+  form { display: flex; flex-wrap: wrap; gap: 8px; }
+  input, select, button { font: inherit; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+  input[type=text] { flex: 1 1 260px; min-width: 0; }
+  button { cursor: pointer; background: var(--accent); color: #fff; border-color: var(--accent); }
+  button.secondary { background: transparent; color: var(--text); border-color: var(--line); }
+  #level { padding: 10px 12px; border-radius: 8px; color: #fff; font-weight: 600; letter-spacing: .03em; margin: 10px 0; background: var(--normal); }
+  #level small { font-weight: 400; opacity: .9; margin-left: 8px; }
+  #preview { width: 100%; border-radius: 8px; background: #000; aspect-ratio: 4 / 3; object-fit: contain; display: block; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .chip { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; color: #fff; background: var(--normal); white-space: nowrap; }
+  .lv-ELEVATED { background: var(--elevated); color: #1d2330; }
+  .lv-SUSPICIOUS_ACTIVITY { background: var(--suspicious); }
+  .lv-WEAPON_RELATED_EVENT { background: var(--wre); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; }
+  .scroll { max-height: 320px; overflow: auto; }
+  #feed { font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; max-height: 260px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+  video, .snap { width: 100%; border-radius: 8px; margin-top: 8px; background: #000; }
+  .muted { color: var(--muted); }
+  .full { grid-column: 1 / -1; }
+  dialog { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); max-width: min(760px, 95vw); width: 100%; }
+  code { font-size: 12px; word-break: break-all; }
+</style>
+</head>
+<body>
+<header>
+  <h1>S.W.O.R.D.</h1>
+  <span class="sub">Incident intelligence — Phases 1·2·3·4·5 → 6</span>
+  <span id="conn">connecting…</span>
+</header>
+<main>
+  <section>
+    <h2>Live</h2>
+    <form id="runForm">
+      <input type="text" id="source" placeholder="video path, camera index (0) or rtsp:// URL" required>
+      <input type="number" id="fps" placeholder="fps" step="0.5" min="0.5" style="width:80px">
+      <select id="openLevel">
+        <option value="SUSPICIOUS_ACTIVITY">incident ≥ SUSPICIOUS</option>
+        <option value="ELEVATED">incident ≥ ELEVATED</option>
+        <option value="WEAPON_RELATED_EVENT">incident ≥ WEAPON-RELATED</option>
+      </select>
+      <button type="submit">Start run</button>
+      <button type="button" class="secondary" id="stopBtn">Stop</button>
+    </form>
+    <div id="level">NORMAL <small id="levelInfo">no active run</small></div>
+    <img id="preview" alt="Live annotated preview">
+    <div class="row" style="margin-top:8px" id="people"></div>
+  </section>
+
+  <section>
+    <h2>Incidents</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>#</th><th>Peak</th><th>Time</th><th>Tracks</th><th>Status</th><th></th></tr></thead>
+        <tbody id="incidents"></tbody>
+      </table>
+    </div>
+    <h2 style="margin-top:14px">Event feed</h2>
+    <div id="feed"></div>
+  </section>
+
+  <section class="full">
+    <h2>Runs</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Run</th><th>Source</th><th>Status</th><th>Frames</th><th>Incidents</th><th>Throughput</th></tr></thead>
+        <tbody id="runs"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="full">
+    <h2>Audit log</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Time (UTC)</th><th>Actor</th><th>Action</th><th>Target</th><th>Details</th></tr></thead>
+        <tbody id="audit"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<dialog id="detail">
+  <div id="detailBody"></div>
+  <form method="dialog" class="row" style="margin-top:10px">
+    <input type="text" id="ackNote" placeholder="review note (optional)">
+    <button type="button" id="ackBtn">Acknowledge</button>
+    <button class="secondary">Close</button>
+  </form>
+</dialog>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const chip = (lv) => `<span class="chip lv-${esc(lv)}">${esc((lv || "").replaceAll("_", " "))}</span>`;
+const LEVEL_VAR = {NORMAL: "--normal", ELEVATED: "--elevated", SUSPICIOUS_ACTIVITY: "--suspicious", WEAPON_RELATED_EVENT: "--wre"};
+let activeRun = null, detailId = null, previewTimer = null;
+const actor = () => { try { return localStorage.getItem("sword.actor") || "operator"; } catch { return "operator"; } };
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, {headers: {"Content-Type": "application/json"}, ...opts});
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
+  return r.json();
+}
+
+function feed(line) {
+  const el = $("feed");
+  el.textContent = `${new Date().toLocaleTimeString()}  ${line}\n` + el.textContent.slice(0, 20000);
+}
+
+function setLevel(lv, info) {
+  const el = $("level");
+  el.style.background = `var(${LEVEL_VAR[lv] || "--normal"})`;
+  el.style.color = lv === "ELEVATED" ? "#1d2330" : "#fff";
+  el.firstChild.nodeValue = (lv || "NORMAL").replaceAll("_", " ") + " ";
+  $("levelInfo").textContent = info || "";
+}
+
+function startPreview(runId) {
+  clearInterval(previewTimer);
+  previewTimer = setInterval(() => { $("preview").src = `/api/runs/${runId}/preview.jpg?ts=${Date.now()}`; }, 500);
+}
+
+async function loadIncidents() {
+  const rows = await api("/api/incidents?limit=100");
+  $("incidents").innerHTML = rows.map((i) => `
+    <tr>
+      <td>${i.id}</td><td>${chip(i.level_peak)}</td>
+      <td>${i.start_t.toFixed(1)}–${i.end_t != null ? i.end_t.toFixed(1) : "…"} s<br><span class="muted">${esc(i.run_id)}</span></td>
+      <td>${esc((i.track_ids || []).join(", "))}</td>
+      <td>${esc(i.status)}${i.ack_by ? `<br><span class="muted">ack: ${esc(i.ack_by)}</span>` : ""}</td>
+      <td><button class="secondary" onclick="openIncident(${i.id})">View</button></td>
+    </tr>`).join("") || `<tr><td colspan="6" class="muted">No incidents yet.</td></tr>`;
+}
+
+async function loadRuns() {
+  const rows = await api("/api/runs?limit=50");
+  $("runs").innerHTML = rows.map((r) => `
+    <tr><td><code>${esc(r.id)}</code></td><td><code>${esc(r.source)}</code></td>
+      <td>${esc(r.status)}${r.error ? `<br><span class="muted">${esc(r.error)}</span>` : ""}</td>
+      <td>${r.frames ?? ""}</td><td>${r.summary?.incidents ?? ""}</td>
+      <td>${r.summary?.timing_ms?.throughput_fps != null ? r.summary.timing_ms.throughput_fps + " fps" : ""}</td></tr>`).join("")
+    || `<tr><td colspan="6" class="muted">No runs yet.</td></tr>`;
+}
+
+async function loadAudit() {
+  const rows = await api("/api/audit?limit=200");
+  $("audit").innerHTML = rows.map((a) => `
+    <tr><td>${esc(a.ts.replace("T", " ").slice(0, 19))}</td><td>${esc(a.actor)}</td><td>${esc(a.action)}</td>
+      <td>${esc(a.target)}</td><td><code>${esc(JSON.stringify(a.details))}</code></td></tr>`).join("");
+}
+
+async function openIncident(id) {
+  detailId = id;
+  const i = await api(`/api/incidents/${id}`);
+  const ev = Object.entries(i.evidence || {}).map(([k, v]) => `${esc(k)} ${Number(v).toFixed(2)}`).join(" · ");
+  $("detailBody").innerHTML = `
+    <h2>Incident ${i.id} ${chip(i.level_peak)}</h2>
+    <div class="muted">run <code>${esc(i.run_id)}</code> · ${i.start_t.toFixed(1)}–${i.end_t != null ? i.end_t.toFixed(1) : "…"} s · tracks ${esc((i.track_ids || []).join(", "))}</div>
+    <div style="margin-top:6px">Evidence: ${ev || "<span class='muted'>—</span>"}</div>
+    ${i.clip_path ? `<video controls src="/api/incidents/${i.id}/clip?actor=${encodeURIComponent(actor())}"></video>
+      <div class="muted">clip sha256 <code>${esc(i.clip_sha256)}</code></div>` : `<div class="muted" style="margin-top:8px">Clip is written when the incident closes.</div>`}
+    ${i.snapshot_path ? `<img class="snap" alt="Annotated snapshot" src="/api/incidents/${i.id}/snapshot?actor=${encodeURIComponent(actor())}">` : ""}
+    <table style="margin-top:8px"><thead><tr><th>t</th><th>scope</th><th>track</th><th>change</th></tr></thead>
+      <tbody>${i.events.map((e) => `<tr><td>${e.t.toFixed(1)}</td><td>${esc(e.scope)}</td><td>${e.track_id ?? ""}</td>
+        <td>${chip(e.from_level)} → ${chip(e.to_level)}</td></tr>`).join("")}</tbody></table>
+    ${i.ack_by ? `<p class="muted">Acknowledged by ${esc(i.ack_by)}${i.ack_note ? `: ${esc(i.ack_note)}` : ""}</p>` : ""}`;
+  $("detail").showModal();
+}
+
+$("ackBtn").onclick = async () => {
+  if (detailId == null) return;
+  await api(`/api/incidents/${detailId}/ack`, {method: "POST", body: JSON.stringify({actor: actor(), note: $("ackNote").value || null})});
+  $("ackNote").value = "";
+  $("detail").close();
+  loadIncidents(); loadAudit();
+};
+
+$("runForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const body = {source: $("source").value.trim(), actor: actor(), open_level: $("openLevel").value};
+  if ($("fps").value) body.fps = parseFloat($("fps").value);
+  try {
+    const run = await api("/api/runs", {method: "POST", body: JSON.stringify(body)});
+    feed(`run queued ${run.id}`);
+    loadRuns(); loadAudit();
+  } catch (err) { feed(`error: ${err.message}`); }
+};
+
+$("stopBtn").onclick = async () => {
+  if (!activeRun) return;
+  try { await api(`/api/runs/${activeRun}/stop`, {method: "POST", body: JSON.stringify({actor: actor()})}); feed(`stop requested ${activeRun}`); }
+  catch (err) { feed(`error: ${err.message}`); }
+};
+
+function connect() {
+  const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/events`);
+  ws.onopen = () => { $("conn").textContent = "live ●"; };
+  ws.onclose = () => { $("conn").textContent = "reconnecting…"; setTimeout(connect, 2000); };
+  ws.onmessage = (m) => {
+    const msg = JSON.parse(m.data);
+    switch (msg.type) {
+      case "frame":
+        activeRun = msg.run_id;
+        setLevel(msg.scene_level, `run ${msg.run_id} · t=${msg.t.toFixed(1)} s · ${msg.persons.length} people · ${msg.weapons.length} weapon tracks`);
+        $("people").innerHTML = msg.persons.map((p) => `${chip(p.level)} <span class="muted">P${p.track_id}${p.action ? " · " + esc(p.action) : ""}</span>`).join(" ");
+        break;
+      case "run_started":
+        activeRun = msg.run_id; startPreview(msg.run_id); feed(`run started ${msg.run_id}`); loadRuns(); break;
+      case "level_change":
+        feed(`${msg.scope}${msg.track_id != null ? " P" + msg.track_id : ""}: ${msg.from} → ${msg.to} (t=${msg.t})`); break;
+      case "incident_opened": case "incident_updated": case "incident_closed":
+        feed(`${msg.type.replace("_", " ")} #${msg.incident.id} ${msg.incident.level_peak}`); loadIncidents(); loadAudit(); break;
+      case "evidence_ready":
+        feed(`evidence ready for incident #${msg.incident_id} (${msg.clip_seconds ?? "?"} s)`); loadIncidents(); loadAudit(); break;
+      case "run_finished": case "run_failed":
+        feed(`${msg.type.replace("_", " ")} ${msg.run_id}${msg.error ? ": " + msg.error : ""}`);
+        clearInterval(previewTimer); setLevel("NORMAL", "no active run"); loadRuns(); loadAudit(); break;
+      case "hello":
+        (msg.recent || []).slice(-10).forEach((r) => feed(`(recent) ${r.type} ${r.run_id || ""}`)); break;
+    }
+  };
+}
+
+loadRuns(); loadIncidents(); loadAudit(); connect();
+</script>
+</body>
+</html>

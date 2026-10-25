@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S.W.O.R.D. Labeler</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --panel: #fff; --text: #1d2330; --muted: #657083; --line: #dfe3ea; --accent: #3b5bdb;
+    --l0: #2f9e55; --l1: #e0a800; --l2: #e8590c; --l3: #d6336c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #11141a; --panel: #1a1f28; --text: #e6e9ef; --muted: #96a0b3; --line: #2b3240; --accent: #748ffc; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  header { display: flex; gap: 12px; align-items: center; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 16px; margin: 0; }
+  main { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; padding: 16px; max-width: 1500px; margin: 0 auto; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; min-width: 0; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 8px; }
+  input, select, button, textarea { font: inherit; padding: 5px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+  button { cursor: pointer; background: var(--accent); color: #fff; border-color: var(--accent); }
+  button.secondary { background: transparent; color: var(--text); border-color: var(--line); }
+  #videos { max-height: 70vh; overflow: auto; }
+  .vid { padding: 6px 8px; border-radius: 6px; cursor: pointer; font-size: 12px; word-break: break-all; }
+  .vid:hover, .vid.active { background: var(--bg); }
+  .vid .tag { font-size: 11px; color: var(--muted); }
+  video { width: 100%; max-height: 52vh; background: #000; border-radius: 8px; }
+  canvas { width: 100%; height: 56px; display: block; margin-top: 8px; border-radius: 6px; background: var(--bg); cursor: pointer; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  th, td { padding: 4px; border-bottom: 1px solid var(--line); text-align: left; }
+  td input[type=number] { width: 84px; }
+  td input.notes { width: 100%; min-width: 120px; }
+  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+  .muted { color: var(--muted); }
+  kbd { font: 11px ui-monospace, Menlo, monospace; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+  #status { margin-left: auto; font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>S.W.O.R.D. interval labeler</h1>
+  <label>Annotator <input id="annotator" placeholder="your name" size="14"></label>
+  <label>Dataset <select id="dataset"><option value="">all</option><option>mendeley</option><option>ucf</option></select></label>
+  <span id="status">loading…</span>
+</header>
+<main>
+  <section>
+    <h2>Videos</h2>
+    <div class="row"><label><input type="checkbox" id="onlyReview"> needs review first</label></div>
+    <div id="videos"></div>
+  </section>
+  <section>
+    <h2 id="title">Select a video</h2>
+    <video id="player" controls preload="metadata"></video>
+    <canvas id="timeline" width="1200" height="56" aria-label="Interval timeline"></canvas>
+    <div class="row">
+      <span class="muted">t = <b id="now">0.00</b> s</span>
+      <button class="secondary" id="markIn">Start <kbd>I</kbd></button> <span id="inVal" class="muted">–</span>
+      <button class="secondary" id="markOut">End <kbd>O</kbd></button> <span id="outVal" class="muted">–</span>
+      <select id="newLevel"></select>
+      <button id="add">Add interval</button>
+      <span class="muted"><kbd>space</kbd> play · <kbd>←</kbd>/<kbd>→</kbd> 1 s · <kbd>shift</kbd>+arrows 0.1 s</span>
+    </div>
+    <table>
+      <thead><tr><th>start s</th><th>end s</th><th>level</th><th>verified</th><th>notes</th><th></th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="row">
+      <button id="save">Save revision</button>
+      <span class="muted" id="origin"></span>
+    </div>
+    <p class="muted">Label only what is visible: see <code>fusion/LABELING_GUIDELINES.md</code>. Derived intervals are unverified until you tick
+      <i>verified</i> (kept or corrected). Every save is a new revision with your name; nothing is overwritten.</p>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const LEVEL_COLORS = ["--l0", "--l1", "--l2", "--l3"];
+let LEVELS = [], videos = [], current = null, rows = [], markIn = null, markOut = null;
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+try { $("annotator").value = localStorage.getItem("sword.annotator") || ""; } catch {}
+$("annotator").onchange = () => { try { localStorage.setItem("sword.annotator", $("annotator").value.trim()); } catch {} };
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, {headers: {"Content-Type": "application/json"}, ...opts});
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
+  return r.json();
+}
+
+function renderVideos() {
+  let list = videos.filter((v) => v.media);
+  if ($("onlyReview").checked) list = list.slice().sort((a, b) => (b.needs_review - a.needs_review));
+  $("videos").innerHTML = list.map((v) => `<div class="vid ${current === v.video ? "active" : ""}" data-v="${esc(v.video)}">
+      ${esc(v.video)}<br><span class="tag">${v.reviewed_revision ? "reviewed r" + v.reviewed_revision : "not reviewed"}${v.needs_review ? " · NEEDS REVIEW" : ""}</span></div>`).join("")
+    || `<p class="muted">No local videos. Fetch datasets first (research/tools/data/fetch_cctv_datasets.py).</p>`;
+  document.querySelectorAll(".vid").forEach((el) => el.onclick = () => openVideo(el.dataset.v));
+  const done = videos.filter((v) => v.reviewed_revision).length;
+  $("status").textContent = `${done} / ${videos.length} videos reviewed`;
+}
+
+async function loadVideos() {
+  videos = await api(`/api/label/videos${$("dataset").value ? "?dataset=" + $("dataset").value : ""}`);
+  renderVideos();
+}
+
+async function openVideo(v) {
+  current = v;
+  $("title").textContent = v;
+  $("player").src = `/api/label/media?video=${encodeURIComponent(v)}`;
+  const d = await api(`/api/label/intervals?video=${encodeURIComponent(v)}`);
+  rows = d.intervals.map((iv) => ({...iv, verified: d.origin === "reviewed" ? iv.source.startsWith("human-verified") : false,
+                                   derived: (iv.source || "").startsWith("derived")}));
+  $("origin").textContent = d.origin === "reviewed" ? `showing reviewed revision ${d.revision}` : "showing derived pre-labels (unverified)";
+  renderRows(); renderVideos(); drawTimeline();
+}
+
+function renderRows() {
+  rows.sort((a, b) => a.start_s - b.start_s);
+  $("rows").innerHTML = rows.map((r, i) => `<tr>
+    <td><input type="number" step="0.1" min="0" value="${r.start_s.toFixed(2)}" data-i="${i}" data-k="start_s"></td>
+    <td><input type="number" step="0.1" min="0" value="${r.end_s.toFixed(2)}" data-i="${i}" data-k="end_s"></td>
+    <td><span class="sw" style="background:var(${LEVEL_COLORS[LEVELS.indexOf(r.label)]})"></span>
+        <select data-i="${i}" data-k="label">${LEVELS.map((l) => `<option ${l === r.label ? "selected" : ""}>${l}</option>`).join("")}</select></td>
+    <td>${r.derived || r.verified ? `<input type="checkbox" data-i="${i}" data-k="verified" ${r.verified ? "checked" : ""}>` : "<span class='muted'>new</span>"}</td>
+    <td><input class="notes" value="${esc(r.notes)}" data-i="${i}" data-k="notes"></td>
+    <td><button class="secondary" data-go="${i}">go</button> <button class="secondary" data-del="${i}">✕</button></td></tr>`).join("");
+  document.querySelectorAll("#rows [data-k]").forEach((el) => el.onchange = () => {
+    const r = rows[+el.dataset.i], k = el.dataset.k;
+    r[k] = k === "verified" ? el.checked : (k === "start_s" || k === "end_s") ? parseFloat(el.value) : el.value;
+    drawTimeline();
+  });
+  document.querySelectorAll("[data-go]").forEach((el) => el.onclick = () => { $("player").currentTime = rows[+el.dataset.go].start_s; });
+  document.querySelectorAll("[data-del]").forEach((el) => el.onclick = () => { rows.splice(+el.dataset.del, 1); renderRows(); drawTimeline(); });
+}
+
+function drawTimeline() {
+  const c = $("timeline"), ctx = c.getContext("2d"), W = c.width, H = c.height;
+  const dur = $("player").duration || Math.max(1, ...rows.map((r) => r.end_s));
+  ctx.clearRect(0, 0, W, H);
+  rows.forEach((r) => {
+    const lv = LEVELS.indexOf(r.label);
+    ctx.fillStyle = css(LEVEL_COLORS[lv]);
+    ctx.globalAlpha = r.verified || !r.derived ? 1 : 0.45;
+    const y = 4 + (3 - lv) * 12;
+    ctx.fillRect(r.start_s / dur * W, y, Math.max(2, (r.end_s - r.start_s) / dur * W), 10);
+  });
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = css("--text");
+  ctx.fillRect(($("player").currentTime || 0) / dur * W - 1, 0, 2, H);
+  if (markIn != null) { ctx.fillStyle = css("--accent"); ctx.fillRect(markIn / dur * W, 0, 2, H); }
+}
+
+$("timeline").onclick = (e) => {
+  const rect = e.target.getBoundingClientRect();
+  $("player").currentTime = (e.clientX - rect.left) / rect.width * ($("player").duration || 0);
+};
+$("player").ontimeupdate = () => { $("now").textContent = $("player").currentTime.toFixed(2); drawTimeline(); };
+$("player").onloadedmetadata = drawTimeline;
+$("markIn").onclick = () => { markIn = $("player").currentTime; $("inVal").textContent = markIn.toFixed(2); drawTimeline(); };
+$("markOut").onclick = () => { markOut = $("player").currentTime; $("outVal").textContent = markOut.toFixed(2); };
+$("add").onclick = () => {
+  if (markIn == null || markOut == null || markOut < markIn) { $("status").textContent = "mark a start and a later end first"; return; }
+  rows.push({start_s: markIn, end_s: markOut, label: $("newLevel").value, scope: "scene", anchor: null, notes: "", verified: false, derived: false, source: "human"});
+  markIn = markOut = null; $("inVal").textContent = $("outVal").textContent = "–";
+  renderRows(); drawTimeline();
+};
+$("save").onclick = async () => {
+  const annotator = $("annotator").value.trim();
+  if (!annotator) { $("status").textContent = "enter your name first"; return; }
+  if (!current) return;
+  try {
+    const res = await api("/api/label/intervals", {method: "PUT", body: JSON.stringify({video: current, annotator,
+      intervals: rows.map((r) => ({start_s: r.start_s, end_s: r.end_s, label: r.label, scope: r.scope || "scene", anchor: r.anchor || null,
+                                   notes: r.notes || "", verified_from_derived: !!r.verified}))})});
+    $("status").textContent = `saved revision ${res.revision} (${res.saved} intervals)`;
+    await loadVideos(); await openVideo(current);
+  } catch (err) { $("status").textContent = "error: " + err.message; }
+};
+document.addEventListener("keydown", (e) => {
+  if (["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
+  const p = $("player"), step = e.shiftKey ? 0.1 : 1;
+  if (e.key === " ") { e.preventDefault(); p.paused ? p.play() : p.pause(); }
+  else if (e.key === "ArrowLeft") p.currentTime = Math.max(0, p.currentTime - step);
+  else if (e.key === "ArrowRight") p.currentTime = p.currentTime + step;
+  else if (e.key === "i" || e.key === "I") $("markIn").click();
+  else if (e.key === "o" || e.key === "O") $("markOut").click();
+});
+$("dataset").onchange = loadVideos;
+$("onlyReview").onchange = renderVideos;
+(async () => {
+  LEVELS = await api("/api/label/levels");
+  $("newLevel").innerHTML = LEVELS.map((l) => `<option>${l}</option>`).join("");
+  loadVideos();
+})();
+</script>
+</body>
+</html>
