@@ -128,6 +128,8 @@ def main():
     ap.add_argument("--segments", nargs="*", help="segment names (default: all)")
     ap.add_argument("--no-vtest", action="store_true")
     ap.add_argument("--save-video", nargs="*", default=[], help="segments to also render annotated.mp4 for")
+    ap.add_argument("--actions-dir", help="with --reevaluate: use Phase 4 actions from phase4_replay.py "
+                                          "(actions_<segment>.json) instead of the recorded ones")
     ap.add_argument("--reevaluate", action="store_true",
                     help="re-score already recorded segments from frames.json with the current association/fusion/evaluation code "
                          "(the recorded evaluation is kept as evaluation_recorded.json)")
@@ -165,6 +167,11 @@ def main():
                 if not (seg_dir / "evaluation_recorded.json").exists():
                     (seg_dir / "evaluation.json").rename(seg_dir / "evaluation_recorded.json")
                 doc = json.loads((seg_dir / "frames.json").read_text())
+                if args.actions_dir:
+                    acts = json.loads((Path(args.actions_dir) / f"actions_{name}.json").read_text())
+                    for f, a in zip(doc["frames"], acts):
+                        assert f["frame_idx"] == a["frame_idx"]
+                        f["actions"] = a["actions"]
                 rederive_weapons(doc["frames"], doc["fps"])   # current tracking/association code
                 rederived = doc["frames"]
                 cfg = FusionConfig.for_fps(doc["fps"])
@@ -270,7 +277,7 @@ def main():
                 "segments": list(per_seg), "wall_minutes": round((time.time() - t_all) / 60, 1),
                 "sources": next(iter(systems.values())).sources if systems else None,
                 "platform": platform.platform(), "python": platform.python_version(),
-                "reevaluated_with_current_code": args.reevaluate,
+                "reevaluated_with_current_code": args.reevaluate, "actions_dir": args.actions_dir,
                 "notes": ["mock-attack frames are 2 fps; FusionConfig.for_fps adapts the persistence grace (a priori)",
                           "fusion action thresholds were calibrated on vtest only; nothing was tuned on mock-attack"]}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2, default=str))
