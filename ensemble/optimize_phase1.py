@@ -11,6 +11,12 @@ Outputs:
   - ensemble/results/paper_figures/phase1_optimization/fig_phase1_optimization_gains.png (.pdf)
   - ensemble/results/paper_figures/phase1_optimization/fig_optimal_thresholds_bar.png (.pdf)
   - ensemble/results/paper_figures/latex_tables/phase1_latex_table.tex
+
+LEGACY PROTOCOL — kept only to reproduce the numbers currently in README.md / PAPER/.
+Known issues (2026-10-22 audit): evaluates a 500-image sample of the val split that was also used for checkpoint
+selection; computes mAP after cutting predictions at conf 0.20 (0.15 for the 3-model ensemble); tunes ensemble
+parameters on the same images it reports on; the val split contains near-duplicates of train images.
+Use ensemble/benchmark.py for paper results (full split, conf >= 0.001, separate tuning split, COCO metrics, CIs).
 """
 
 import os
@@ -34,10 +40,7 @@ from ultralytics import YOLO
 from ultralytics.utils.metrics import ap_per_class, box_iou
 from ensemble.wbf import weighted_boxes_fusion
 
-CLASS_NAMES = [
-    "Pistol", "Shotgun", "Assault Rifle", "Grenade", "Knife",
-    "Sword", "Sniper Rifle", "SMG", "Rocket Launcher", "Machine Gun",
-]
+from ensemble.classes import CLASS_NAMES  # single source of truth for class names
 NUM_CLASSES = len(CLASS_NAMES)
 IOU_THRESHOLDS = torch.linspace(0.5, 0.95, 10)
 
@@ -440,4 +443,7 @@ mAP@50 & %.4f & \textbf{%.4f} & +%.2f\%% \\
 
 
 if __name__ == "__main__":
+    import warnings
+    warnings.warn("LEGACY evaluation protocol (500-image val sample, truncated mAP, in-sample tuning). "
+                  "Use ensemble/benchmark.py for paper results.", stacklevel=1)
     main()
