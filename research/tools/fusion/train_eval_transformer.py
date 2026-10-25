@@ -164,6 +164,8 @@ def main():
     ap.add_argument("--usrt", nargs="*", default=[])
     ap.add_argument("--out", required=True)
     ap.add_argument("--seeds", type=int, default=3)
+    ap.add_argument("--force-train", nargs="*", default=[], help="UCF video names (e.g. Shooting022) that must not be "
+                    "tested, e.g. because the replayed detector was trained on their frames")
     ap.add_argument("--epochs", type=int, default=40)
     ap.add_argument("--device", default="cpu")
     args = ap.parse_args()
@@ -181,16 +183,23 @@ def main():
             by_cat[it["video"].split("/")[1]].append(it)
         sets["ucf_train"], sets["ucf_test"] = [], []
         rng = random.Random(0)
+        forced = set(args.force_train)
+        is_forced = lambda it: it["video"].split("/")[-1].replace("_x264.mp4", "") in forced  # noqa: E731
         for cat, its in sorted(by_cat.items()):
             its = sorted(its, key=lambda i: i["video"])
             rng.shuffle(its)
             sets["ucf_train"] += its[: len(its) // 2]
             sets["ucf_test"] += its[len(its) // 2:]
+        moved = [it for it in sets["ucf_test"] if is_forced(it)]
+        sets["ucf_train"] += moved
+        sets["ucf_test"] = [it for it in sets["ucf_test"] if not is_forced(it)]
+        results_forced = [it["video"] for it in moved]
     if args.usrt:
         sets["usrt_external_test"] = load_set(args.usrt, LABELS / "usrt_derived_TEST_ONLY.csv",
                                               LABELS / "usrt_derived_TEST_ONLY.manifest.json")
     train_items = sets["mendeley_train"] + sets.get("ucf_train", [])
     results = {"created": datetime.now().isoformat(timespec="seconds"), "args": vars(args),
+               "ucf_moved_to_train": results_forced if args.ucf else [],
                "set_sizes": {k: len(v) for k, v in sets.items()}, "features": SCENE_FEATURES, "rate_hz": RATE, "win": WIN,
                "label_sources": "derived (unverified) — see fusion/LABELING_GUIDELINES.md", "seeds": {}}
     tests = [k for k in sets if k.endswith("test")]
