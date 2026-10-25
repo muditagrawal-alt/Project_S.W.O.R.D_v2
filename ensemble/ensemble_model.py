@@ -35,14 +35,8 @@ import torch
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple, Union
 
+from ensemble.classes import CLASS_NAMES
 from ensemble.wbf import weighted_boxes_fusion, nms
-
-
-# SWORD v2 class names (10 weapon classes)
-CLASS_NAMES = [
-    "Pistol", "Shotgun", "assault rifle", "grenade", "knife",
-    "sword", "Sniper Dataset", "SMG", "rocket launcher", "Machine gun",
-]
 
 
 class SWORDEnsembleDetector:
@@ -77,6 +71,7 @@ class SWORDEnsembleDetector:
         outlier_penalty: float = 0.65,
         class_weights: Optional[Dict[int, List[float]]] = None,
         class_conf_thrs: Optional[Dict[int, float]] = None,
+        pre_nms_iou: Optional[float] = 0.5,
     ):
         """
         Initialize the ensemble detector.
@@ -98,6 +93,9 @@ class SWORDEnsembleDetector:
             outlier_penalty: Multiplicative penalty for single-model outliers.
             class_weights: Optional per-class model weights dict.
             class_conf_thrs: Optional per-class output confidence threshold dict.
+            pre_nms_iou: class-wise NMS on each model's raw output before WBF (None disables). Reference WBF averages
+                scores within a cluster and assumes ~one box per model per object; RT-DETR returns 300 queries and
+                YOLO26 (NMS-free) many overlapping low-confidence boxes, which otherwise dilute fused scores.
         """
         import json
         from ultralytics import YOLO, RTDETR
@@ -120,6 +118,7 @@ class SWORDEnsembleDetector:
         self.outlier_penalty = outlier_penalty
         self.class_weights = class_weights
         self.class_conf_thrs = class_conf_thrs
+        self.pre_nms_iou = pre_nms_iou
         self.models = []
         self.model_names = []
 
@@ -249,12 +248,11 @@ class SWORDEnsembleDetector:
                 - "labels": (M,) class labels
                 - "img_shape": (H, W)
         """
-        # Run all models
-        all_model_dets = []
-        for model in self.models:
-            dets = self._run_single_model(model, source, img_size, raw_conf, raw_iou)
-            all_model_dets.append(dets)
+        all_model_dets = [self._run_single_model(m, source, img_size, raw_conf, raw_iou) for m in self.models]
+        return self._fuse(all_model_dets)
 
+    def _fuse(self, all_model_dets: List[List[Dict]]) -> List[Dict]:
+        """Fuse per-model raw detections (as returned by _run_single_model) image by image."""
         n_images = len(all_model_dets[0])
         for dets in all_model_dets[1:]:
             assert len(dets) == n_images, "Model outputs must have same number of images"
@@ -270,6 +268,9 @@ class SWORDEnsembleDetector:
 
             for model_dets in all_model_dets:
                 det = model_dets[img_idx]
+                if self.pre_nms_iou and len(det["boxes"]):
+                    b, sc, lb = nms(det["boxes"], det["scores"], det["labels"], iou_thr=self.pre_nms_iou)
+                    det = {**det, "boxes": b, "scores": sc, "labels": lb}
                 boxes_norm = det["boxes"].copy()
                 if len(boxes_norm) > 0:
                     boxes_norm[:, [0, 2]] /= w
@@ -336,14 +337,8 @@ class SWORDEnsembleDetector:
             Dict with keys for each model name and "ensemble", each containing
             boxes/scores/labels/img_shape.
         """
-        individual_results = {}
-        for model, name in zip(self.models, self.model_names):
-            dets = self._run_single_model(model, source, img_size)
-            individual_results[name] = dets[0]
-
-        # Get fused result
-        fused = self.predict(source, img_size)
-
-        result = dict(individual_results)
-        result["ensemble"] = fused[0]
+        # Each model runs once; the same raw detections feed both the per-model view and the fusion.
+        all_model_dets = [self._run_single_model(m, source, img_size) for m in self.models]
+        result = {name: dets[0] for name, dets in zip(self.model_names, all_model_dets)}
+        result["ensemble"] = self._fuse(all_model_dets)[0]
         return result
