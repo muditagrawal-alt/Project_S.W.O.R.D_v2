@@ -45,6 +45,20 @@ def _iou_vectorized(box: np.ndarray, boxes: np.ndarray) -> np.ndarray:
     return np.where(union > 0, inter / union, 0.0)
 
 
+def _fuse_rows(rows: np.ndarray, conf_type: str) -> np.ndarray:
+    """Fuse cluster rows [weighted_score, weight, model, x1, y1, x2, y2] into one row of the same layout.
+
+    Coordinates are averaged with the weighted scores as weights; the score field holds the mean weighted
+    score ("max" conf_type: the maximum), exactly as in the reference implementation.
+    """
+    ws = rows[:, 0]
+    fused = np.zeros(7, dtype=np.float64)
+    fused[3:7] = (ws[:, None] * rows[:, 3:7]).sum(axis=0) / ws.sum()
+    fused[0] = ws.max() if conf_type == "max" else ws.sum() / len(rows)
+    fused[1] = rows[:, 1].sum()
+    return fused
+
+
 def weighted_boxes_fusion(
     boxes_list: List[np.ndarray],
     scores_list: List[np.ndarray],
@@ -62,250 +76,126 @@ def weighted_boxes_fusion(
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Weighted Boxes Fusion (WBF) for ensembling predictions from multiple models.
-    
-    Supports global model weights, class-adaptive model weights, consensus-boosted
-    confidence scoring, and per-class confidence threshold filtering.
-    
+
+    The confidence types "avg", "max", "box_and_model_avg" and "absent_model_aware_avg" reproduce the
+    reference implementation by the WBF authors (``ensemble_boxes.weighted_boxes_fusion``) exactly;
+    ``tests/test_wbf.py`` checks parity on random inputs. In particular, a cluster's "avg" score is
+    ``mean(score * w) * min(n_models, n_boxes) / sum(w)``, so it can no longer exceed 1 when one model
+    contributes several boxes to the same cluster (it could before).
+
+    Project extensions on top of the reference:
+        * class_weights: per-class model weights (override ``weights`` for the given class IDs).
+        * conf_type="consensus_boosted": "avg" score, boosted when every model contributes and penalised
+          when a single model contributes a low score; always clipped to 1.
+        * class_conf_thrs: per-class minimum score for a fused box to be returned.
+
     Args:
-        boxes_list: List of arrays, each shape (N_i, 4) with [x1, y1, x2, y2]
-                    coordinates **normalized to [0, 1]**.
-        scores_list: List of arrays, each shape (N_i,) with confidence scores.
-        labels_list: List of arrays, each shape (N_i,) with integer class labels.
-        weights: Global per-model weight factors. Default: equal weights (1.0 each).
-        class_weights: Optional dict mapping class_id -> list of weights per model.
-                       Overrides global weights for specified classes.
-        iou_thr: IoU threshold for grouping boxes as belonging to the same object.
-        skip_box_thr: Minimum score threshold; discard boxes below this before fusion.
-        conf_type: How to compute fused confidence:
-            - "avg": Average confidence over all models.
-            - "consensus_boosted": Boosts confidence when all models agree, penalizes isolated low-conf detections.
-            - "max": Maximum confidence of any contributing box.
-            - "box_and_model_avg": Weighted average factoring in model weights.
-            - "absent_model_aware_avg": Average that accounts for models that didn't detect the object.
-        allows_overflow: If True, don't clip box coordinates to [0, 1].
-        consensus_boost: Multiplicative boost factor for full consensus (e.g. 0.15 = +15%).
-        outlier_thr: Threshold below which single-model detections are penalized as outliers.
-        outlier_penalty: Multiplicative penalty for single-model outlier detections (e.g. 0.65).
-        class_conf_thrs: Optional dict mapping class_id -> min confidence threshold for output.
-    
+        boxes_list: per model, (N_i, 4) arrays of [x1, y1, x2, y2] **normalised to [0, 1]**.
+        scores_list: per model, (N_i,) confidence scores.
+        labels_list: per model, (N_i,) integer class labels.
+        weights: per-model weights (default 1.0 each).
+        class_weights: optional {class_id: [w_model_0, w_model_1, ...]}.
+        iou_thr: a box joins a cluster when its IoU with the cluster's fused box is > iou_thr.
+        skip_box_thr: boxes scoring below this are ignored.
+        conf_type: "avg", "max", "box_and_model_avg", "absent_model_aware_avg" or "consensus_boosted".
+        allows_overflow: reference semantics — if True, the "avg" score is not capped by min(n_models, n_boxes).
+        consensus_boost, outlier_thr, outlier_penalty: parameters of "consensus_boosted".
+        class_conf_thrs: optional {class_id: min_score}.
+
     Returns:
-        Tuple of (fused_boxes, fused_scores, fused_labels):
-            - fused_boxes: (M, 4) array of merged bounding boxes.
-            - fused_scores: (M,) array of fused confidence scores.
-            - fused_labels: (M,) array of class labels.
+        (fused_boxes (M, 4), fused_scores (M,), fused_labels (M,)), sorted by score, descending.
     """
     n_models = len(boxes_list)
-    
     if weights is None:
         weights = [1.0] * n_models
-    
-    assert len(weights) == n_models, (
-        f"weights length ({len(weights)}) must match number of models ({n_models})"
-    )
-    
-    # Normalize global weights so they sum to N_models (preserves averaging semantics)
-    weight_sum = sum(weights)
-    norm_global_weights = [w * n_models / weight_sum for w in weights] if weight_sum > 0 else [1.0] * n_models
-    
-    # Normalize per-class weights if provided
-    norm_class_weights = {}
-    if class_weights is not None:
-        for c, c_w in class_weights.items():
-            assert len(c_w) == n_models, f"class_weights[{c}] length must match {n_models}"
-            c_sum = sum(c_w)
-            norm_class_weights[c] = [w * n_models / c_sum for w in c_w] if c_sum > 0 else norm_global_weights
+    if len(weights) != n_models:
+        raise ValueError(f"weights length ({len(weights)}) must match number of models ({n_models})")
+    if conf_type not in {"avg", "max", "box_and_model_avg", "absent_model_aware_avg", "consensus_boosted"}:
+        raise ValueError(f"Unknown conf_type: {conf_type}")
+    global_w = np.asarray(weights, dtype=np.float64)
+    cls_w = {}
+    for c, cw in (class_weights or {}).items():
+        if len(cw) != n_models:
+            raise ValueError(f"class_weights[{c}] length must match number of models ({n_models})")
+        cls_w[int(c)] = np.asarray(cw, dtype=np.float64)
 
-    # Collect all boxes with metadata: [x1, y1, x2, y2, score, model_idx, original_idx]
-    all_boxes = []
-    all_scores = []
-    all_labels = []
-    all_model_idx = []
-    
-    for model_i in range(n_models):
-        boxes = boxes_list[model_i]
-        scores = scores_list[model_i]
-        labels = labels_list[model_i]
-        
+    # Pre-filter (as in the reference): drop low scores, order and clip coordinates, drop zero-area boxes.
+    per_label: Dict[int, list] = {}
+    for m in range(n_models):
+        boxes = np.asarray(boxes_list[m], dtype=np.float64).reshape(-1, 4)
+        scores = np.asarray(scores_list[m], dtype=np.float64).reshape(-1)
+        labels = np.asarray(labels_list[m]).reshape(-1)
         if len(boxes) == 0:
             continue
-        
-        # Filter by skip_box_thr
-        mask = scores >= skip_box_thr
-        boxes = boxes[mask]
-        scores = scores[mask]
-        labels = labels[mask]
-        
-        if len(boxes) == 0:
-            continue
-            
-        # Apply class-specific or global model weights
-        if norm_class_weights:
-            weighted_scores = np.empty_like(scores)
-            for i in range(len(scores)):
-                cls_id = int(labels[i])
-                cls_w = norm_class_weights.get(cls_id, norm_global_weights)
-                weighted_scores[i] = scores[i] * cls_w[model_i]
-        else:
-            weighted_scores = scores * norm_global_weights[model_i]
-        
-        all_boxes.append(boxes)
-        all_scores.append(weighted_scores)
-        all_labels.append(labels)
-        all_model_idx.append(np.full(len(boxes), model_i, dtype=np.int32))
-    
-    if len(all_boxes) == 0:
-        return (
-            np.zeros((0, 4), dtype=np.float32),
-            np.zeros((0,), dtype=np.float32),
-            np.zeros((0,), dtype=np.int32),
-        )
-    
-    all_boxes = np.concatenate(all_boxes, axis=0)
-    all_scores = np.concatenate(all_scores, axis=0)
-    all_labels = np.concatenate(all_labels, axis=0)
-    all_model_idx = np.concatenate(all_model_idx, axis=0)
-    
-    # Process per class
-    unique_labels = np.unique(all_labels)
-    fused_boxes = []
-    fused_scores = []
-    fused_labels_out = []
-    
-    for cls in unique_labels:
-        cls_mask = all_labels == cls
-        cls_boxes = all_boxes[cls_mask].copy()
-        cls_scores = all_scores[cls_mask].copy()
-        cls_model_idx = all_model_idx[cls_mask].copy()
-        
-        if len(cls_boxes) == 0:
-            continue
-        
-        # Sort by score descending
-        order = np.argsort(-cls_scores)
-        cls_boxes = cls_boxes[order]
-        cls_scores = cls_scores[order]
-        cls_model_idx = cls_model_idx[order]
-        
-        # Cluster boxes using greedy IoU-based grouping
-        # Each cluster will be fused into a single output box
-        clusters = []  # List of lists of (box, score, model_idx)
-        cluster_boxes = []  # Representative box for each cluster (running weighted avg)
-        
-        for i in range(len(cls_boxes)):
-            box = cls_boxes[i]
-            score = cls_scores[i]
-            model_i = cls_model_idx[i]
-            
-            matched_cluster = -1
-            best_iou = iou_thr
-            
-            if len(cluster_boxes) > 0:
-                ious = _iou_vectorized(box, np.array(cluster_boxes))
-                max_iou_idx = np.argmax(ious)
-                if ious[max_iou_idx] >= iou_thr:
-                    matched_cluster = max_iou_idx
-                    best_iou = ious[max_iou_idx]
-            
-            if matched_cluster >= 0:
-                clusters[matched_cluster].append((box.copy(), score, model_i))
-                # Update cluster representative as weighted average
-                members = clusters[matched_cluster]
-                weighted_coords = np.zeros(4)
-                total_weight = 0.0
-                for mb, ms, _ in members:
-                    weighted_coords += mb * ms
-                    total_weight += ms
-                if total_weight > 0:
-                    cluster_boxes[matched_cluster] = weighted_coords / total_weight
-            else:
-                clusters.append([(box.copy(), score, model_i)])
-                cluster_boxes.append(box.copy())
-        
-        # Compute fused output for each cluster
-        for cluster in clusters:
-            n_boxes = len(cluster)
-            
-            # Weighted average of coordinates
-            weighted_coords = np.zeros(4)
-            total_conf = 0.0
-            max_conf = 0.0
-            model_contributions = {}
-            
-            for mb, ms, mi in cluster:
-                weighted_coords += mb * ms
-                total_conf += ms
-                max_conf = max(max_conf, ms)
-                model_contributions[mi] = model_contributions.get(mi, 0.0) + ms
-            
-            if total_conf > 0:
-                merged_box = weighted_coords / total_conf
-            else:
-                merged_box = cluster[0][0]
-            
-            # Fused confidence score
-            if conf_type == "avg":
-                # Average over all models (penalizes if not all models agree)
-                merged_score = total_conf / n_models
-            elif conf_type == "consensus_boosted":
-                n_contributing = len(model_contributions)
-                base_score = total_conf / n_models
-                if n_contributing >= n_models and n_models > 1:
-                    # Consensus boost when all models detect
-                    merged_score = min(1.0, base_score * (1.0 + consensus_boost))
-                elif n_contributing == 1 and n_models > 1:
-                    # Single model detection
-                    if base_score < outlier_thr:
-                        merged_score = base_score * outlier_penalty
-                    else:
-                        merged_score = base_score
-                else:
-                    merged_score = base_score
-            elif conf_type == "max":
-                merged_score = max_conf
-            elif conf_type == "box_and_model_avg":
-                # Average confidence within each model, then average across models
-                per_model_avg = []
-                for mi in range(n_models):
-                    if mi in model_contributions:
-                        model_boxes = [ms for _, ms, m in cluster if m == mi]
-                        per_model_avg.append(np.mean(model_boxes))
-                if len(per_model_avg) > 0:
-                    merged_score = np.mean(per_model_avg)
-                else:
-                    merged_score = total_conf / n_models
-            elif conf_type == "absent_model_aware_avg":
-                # Like avg, but only divides by number of models that contributed
-                n_contributing = len(model_contributions)
-                merged_score = total_conf / max(n_contributing, 1)
-            else:
-                raise ValueError(f"Unknown conf_type: {conf_type}")
-            
-            # Apply per-class confidence threshold if specified
-            if class_conf_thrs is not None and cls in class_conf_thrs:
-                if merged_score < class_conf_thrs[cls]:
+        keep = scores >= skip_box_thr
+        boxes, scores, labels = boxes[keep], scores[keep], labels[keep]
+        x1 = np.clip(np.minimum(boxes[:, 0], boxes[:, 2]), 0.0, 1.0)
+        x2 = np.clip(np.maximum(boxes[:, 0], boxes[:, 2]), 0.0, 1.0)
+        y1 = np.clip(np.minimum(boxes[:, 1], boxes[:, 3]), 0.0, 1.0)
+        y2 = np.clip(np.maximum(boxes[:, 1], boxes[:, 3]), 0.0, 1.0)
+        for i in np.nonzero((x2 - x1) * (y2 - y1) > 0)[0]:
+            lab = int(labels[i])
+            w = cls_w.get(lab, global_w)[m]
+            per_label.setdefault(lab, []).append([scores[i] * w, w, m, x1[i], y1[i], x2[i], y2[i]])
+
+    fused_boxes, fused_scores, fused_labels = [], [], []
+    for lab, rows in per_label.items():
+        arr = np.asarray(rows, dtype=np.float64)
+        arr = arr[np.argsort(-arr[:, 0], kind="stable")]
+        w_lab = cls_w.get(lab, global_w)
+        clusters: List[List[int]] = []
+        fused = np.empty((0, 7), dtype=np.float64)
+        for j in range(len(arr)):
+            if len(fused):
+                ious = _iou_vectorized(arr[j, 3:7], fused[:, 3:7])
+                k = int(np.argmax(ious))
+                if ious[k] > iou_thr:
+                    clusters[k].append(j)
+                    fused[k] = _fuse_rows(arr[clusters[k]], conf_type)
                     continue
+            clusters.append([j])
+            fused = np.vstack([fused, arr[j]])
 
-            if not allows_overflow:
-                merged_box = np.clip(merged_box, 0.0, 1.0)
-            
-            fused_boxes.append(merged_box)
-            fused_scores.append(merged_score)
-            fused_labels_out.append(cls)
-    
-    if len(fused_boxes) == 0:
+        for k, members in enumerate(clusters):
+            rows_k = arr[members]
+            n = len(rows_k)
+            f = fused[k]
+            if conf_type == "box_and_model_avg":
+                score = f[0] * n / rows_k[:, 1].sum()
+                _, first = np.unique(rows_k[:, 2], return_index=True)
+                score = score * rows_k[first, 1].sum() / w_lab.sum()
+            elif conf_type == "absent_model_aware_avg":
+                absent = np.ones(n_models, dtype=bool)
+                absent[np.unique(rows_k[:, 2]).astype(int)] = False
+                score = f[0] * n / (rows_k[:, 1].sum() + w_lab[absent].sum())
+            elif conf_type == "max":
+                score = f[0] / w_lab.max()
+            else:  # "avg" and "consensus_boosted"
+                score = f[0] * (n if allows_overflow else min(n_models, n)) / w_lab.sum()
+                if conf_type == "consensus_boosted" and n_models > 1:
+                    n_contrib = len(np.unique(rows_k[:, 2]))
+                    if n_contrib == n_models:
+                        score = min(1.0, score * (1.0 + consensus_boost))
+                    elif n_contrib == 1 and score < outlier_thr:
+                        score *= outlier_penalty
+            if class_conf_thrs is not None and lab in class_conf_thrs and score < class_conf_thrs[lab]:
+                continue
+            fused_boxes.append(f[3:7])
+            fused_scores.append(score)
+            fused_labels.append(lab)
+
+    if not fused_boxes:
         return (
             np.zeros((0, 4), dtype=np.float32),
             np.zeros((0,), dtype=np.float32),
             np.zeros((0,), dtype=np.int32),
         )
-    
-    fused_boxes = np.array(fused_boxes, dtype=np.float32)
-    fused_scores = np.array(fused_scores, dtype=np.float32)
-    fused_labels_out = np.array(fused_labels_out, dtype=np.int32)
-    
-    # Final sort by score
-    order = np.argsort(-fused_scores)
-    return fused_boxes[order], fused_scores[order], fused_labels_out[order]
+    order = np.argsort(-np.asarray(fused_scores), kind="stable")
+    return (
+        np.asarray(fused_boxes, dtype=np.float32)[order],
+        np.asarray(fused_scores, dtype=np.float32)[order],
+        np.asarray(fused_labels, dtype=np.int32)[order],
+    )
 
 
 def nms(
