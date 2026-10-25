@@ -14,6 +14,8 @@ env/
 
 # ─── Model Weights (download separately) ───
 weights/*.pt
+*.pth
+*.onnx
 *.pt
 !dataset/dataset.yaml
 
@@ -50,3 +52,6 @@ kaggle.json
 /yolo26m/
 /rt_detr/
 /resumed_run/
+
+# ─── Runtime data (Phase 6 service) ───
+service_data/

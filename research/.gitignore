@@ -1,0 +1,6 @@
+# Research outputs stay local and untracked (runs, results, data, caches, reports).
+# Only the tools that produce them are versioned.
+/*
+!/.gitignore
+!/tools/
+/tools/**/__pycache__/
