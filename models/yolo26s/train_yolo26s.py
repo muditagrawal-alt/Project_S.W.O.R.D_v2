@@ -7,9 +7,11 @@ Designed for Kaggle Tesla T4 GPU but works on any CUDA/MPS/CPU device.
 
 Training Configuration:
     - Architecture: YOLO v11/26 Small (~9.4M parameters)
-    - Epochs: 300 (early stopping patience=5, converges at ~75)
-    - Image Size: 640x640
-    - Optimizer: AdamW with cosine annealing LR
+    - Epochs: 300 with early stopping (patience=50 by default). The published runs used patience=5 and
+      stopped while mAP was still rising (best epoch = last epoch), i.e. under-trained.
+    - Image Size: 640x640, batch 16 (fixed so runs are comparable; the published runs used batch=-1,
+      which auto-selected 11 for YOLO26s and 5 for YOLO26m on a Kaggle T4)
+    - Optimizer: Ultralytics 'auto' (it chooses optimizer and initial LR itself), cosine LR schedule
     - Augmentation: Mosaic (disabled last 10 epochs)
 
 Usage:
@@ -50,7 +52,7 @@ def train(args):
         epochs=args.epochs,
         patience=args.patience,
         imgsz=640,
-        batch=-1,               # Auto batch size based on GPU memory
+        batch=args.batch,       # fixed batch for comparable runs (auto-batch picked 5 for YOLO26m)
         device=device,
         cos_lr=True,            # Cosine annealing learning rate
         lr0=0.01,               # Initial learning rate
@@ -63,6 +65,8 @@ def train(args):
         save_period=10,         # Save checkpoint every 10 epochs
         plots=True,
         verbose=True,
+        seed=args.seed,
+        deterministic=True,
         project=args.project,
         name=args.name,
     )
@@ -77,8 +81,10 @@ if __name__ == "__main__":
                         help="Path to dataset.yaml")
     parser.add_argument("--epochs", type=int, default=300,
                         help="Maximum training epochs (early stopping will terminate sooner)")
-    parser.add_argument("--patience", type=int, default=5,
-                        help="Early stopping patience")
+    parser.add_argument("--patience", type=int, default=50,
+                        help="Early stopping patience (5 stopped the published runs while still improving)")
+    parser.add_argument("--batch", type=int, default=16, help="Batch size (-1 = Ultralytics auto-batch)")
+    parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument("--device", type=str, default="auto",
                         help="Device: 'auto', 'cuda', 'mps', 'cpu', or GPU index")
     parser.add_argument("--project", type=str, default="runs",

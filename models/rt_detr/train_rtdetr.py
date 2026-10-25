@@ -7,7 +7,8 @@ detection dataset (10 classes). Uses transformer-specific hyperparameters.
 
 Training Configuration:
     - Architecture: RT-DETR-L (~32M parameters)
-    - Epochs: 100 (early stopping patience=10, transformers need longer warmup)
+    - Epochs: 100 with early stopping (patience=30 by default; the published run used 10 and was resumed
+      once: 26 epochs on 1 GPU, then 74 more on 2 GPUs with batch 16)
     - Image Size: 640x640
     - Optimizer: AdamW (standard for Vision Transformers)
     - Learning Rate: 0.0001 (lower than YOLO to prevent attention divergence)
@@ -63,6 +64,8 @@ def train(args):
         save_period=10,
         plots=True,
         verbose=True,
+        seed=args.seed,
+        deterministic=True,
         project=args.project,
         name=args.name,
     )
@@ -75,8 +78,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train RT-DETR-L on SWORD v2")
     parser.add_argument("--data", type=str, default="dataset/dataset.yaml")
     parser.add_argument("--epochs", type=int, default=100)
-    parser.add_argument("--patience", type=int, default=10,
-                        help="Higher patience for transformers (query alignment takes longer)")
+    parser.add_argument("--patience", type=int, default=30,
+                        help="Early stopping patience (transformers converge slowly)")
+    parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument("--batch", type=int, default=8,
                         help="Batch size (RT-DETR uses more memory than YOLO)")
     parser.add_argument("--device", type=str, default="auto")
