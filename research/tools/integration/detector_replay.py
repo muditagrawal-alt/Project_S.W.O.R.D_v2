@@ -36,7 +36,9 @@ def source_frames(doc: dict):
             yield f["frame_idx"], cv2.imread(f["image"])
         return
     parts = vid.split("/")
-    if parts[0] == "mendeley":
+    if vid == "vtest.avi":
+        path = DATA / "videos" / "vtest.avi"
+    elif parts[0] == "mendeley":
         path = DATA / "mendeley_firearm" / "extracted" / "Gun_Action_Recognition_Dataset" / Path(*parts[1:])
     elif parts[0] == "ucf":
         path = DATA / "ucf_crime" / "extracted" / "UCF_Crimes" / "Videos" / Path(*parts[1:])
@@ -92,6 +94,13 @@ def main():
         doc["sources"] = {**doc.get("sources", {}), "weapon_detector": f"{Path(args.weights).name} @ imgsz {args.imgsz} (replayed)"}
         dst.parent.mkdir(parents=True, exist_ok=True)
         dst.write_text(json.dumps(doc))
+        # let run_full_pipeline.py --reevaluate score the replay like any recording (timings are the original run's)
+        summ = fj.parent / "summary.json"
+        if summ.exists():
+            sd = json.loads(summ.read_text())
+            sd["note"] = "copied from the original recording; timings are not those of the replayed detector"
+            (dst.parent / "summary.json").write_text(json.dumps(sd, indent=2))
+            (dst.parent / "evaluation.json").write_text("{}")   # placeholder, recomputed by --reevaluate
     (out / "manifest.json").write_text(json.dumps({"created": datetime.now().isoformat(timespec="seconds"), "args": vars(args),
                                                    "recordings": len(files), "frames_redetected": n_frames,
                                                    "minutes": round((time.time() - t0) / 60, 1)}, indent=2))
