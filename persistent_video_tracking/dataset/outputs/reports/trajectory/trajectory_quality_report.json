@@ -1,0 +1,1749 @@
+{
+  "report_title": "S.W.O.R.D Phase 2 Read-Only Trajectory Quality Audit",
+  "description": "Comprehensive diagnostic audit of frame gaps, spatial jump magnitudes, continuity, and tracking flags across sample videos.",
+  "note": "Descriptive diagnostic evaluation only. No velocity, acceleration, or threat scoring applied. Original observations preserved strictly without interpolation.",
+  "dataset_scope": {
+    "total_videos": 3,
+    "total_tracks": 61,
+    "total_consecutive_transitions": 4884
+  },
+  "frame_gap_statistics": {
+    "sample_video_01.mp4": {
+      "total_transitions": 635,
+      "min_gap": 1,
+      "max_gap": 212,
+      "mean_gap": 1.5181,
+      "median_gap": 1.0,
+      "num_gaps_gt_1": 29,
+      "pct_gaps_gt_1": 4.57,
+      "num_gaps_gt_5": 6,
+      "pct_gaps_gt_5": 0.94,
+      "num_gaps_gt_10": 3,
+      "pct_gaps_gt_10": 0.47,
+      "num_gaps_gt_30": 2,
+      "pct_gaps_gt_30": 0.31
+    },
+    "sample_video_02.mp4": {
+      "total_transitions": 1011,
+      "min_gap": 1,
+      "max_gap": 501,
+      "mean_gap": 1.8675,
+      "median_gap": 1.0,
+      "num_gaps_gt_1": 80,
+      "pct_gaps_gt_1": 7.91,
+      "num_gaps_gt_5": 16,
+      "pct_gaps_gt_5": 1.58,
+      "num_gaps_gt_10": 7,
+      "pct_gaps_gt_10": 0.69,
+      "num_gaps_gt_30": 3,
+      "pct_gaps_gt_30": 0.3
+    },
+    "sample_video_03.mp4": {
+      "total_transitions": 3238,
+      "min_gap": 1,
+      "max_gap": 447,
+      "mean_gap": 1.7847,
+      "median_gap": 1.0,
+      "num_gaps_gt_1": 211,
+      "pct_gaps_gt_1": 6.52,
+      "num_gaps_gt_5": 64,
+      "pct_gaps_gt_5": 1.98,
+      "num_gaps_gt_10": 41,
+      "pct_gaps_gt_10": 1.27,
+      "num_gaps_gt_30": 22,
+      "pct_gaps_gt_30": 0.68
+    },
+    "overall": {
+      "total_transitions": 4884,
+      "min_gap": 1,
+      "max_gap": 501,
+      "mean_gap": 1.7672,
+      "median_gap": 1.0,
+      "num_gaps_gt_1": 320,
+      "pct_gaps_gt_1": 6.55,
+      "num_gaps_gt_5": 86,
+      "pct_gaps_gt_5": 1.76,
+      "num_gaps_gt_10": 51,
+      "pct_gaps_gt_10": 1.04,
+      "num_gaps_gt_30": 27,
+      "pct_gaps_gt_30": 0.55
+    }
+  },
+  "top_largest_spatial_jumps": [
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 24,
+      "previous_frame": 5598,
+      "current_frame": 5604,
+      "frame_gap": 6,
+      "previous_x": 717.77,
+      "previous_y": 1296.27,
+      "current_x": 715.12,
+      "current_y": 2092.74,
+      "pixel_jump": 796.4744,
+      "pixel_jump_per_frame_gap": 132.7457,
+      "smoothed_class": "Shotgun",
+      "prev_bbox_wh": [
+        1435.5,
+        2504.0
+      ],
+      "curr_bbox_wh": [
+        1430.2,
+        934.5
+      ],
+      "prev_conf": 0.2803,
+      "curr_conf": 0.6907
+    },
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 21,
+      "previous_frame": 4357,
+      "current_frame": 4408,
+      "frame_gap": 51,
+      "previous_x": 715.77,
+      "previous_y": 1389.05,
+      "current_x": 780.92,
+      "current_y": 873.03,
+      "pixel_jump": 520.1165,
+      "pixel_jump_per_frame_gap": 10.1984,
+      "smoothed_class": "Pistol",
+      "prev_bbox_wh": [
+        1387.6,
+        2284.2
+      ],
+      "curr_bbox_wh": [
+        1318.2,
+        1653.4
+      ],
+      "prev_conf": 0.34,
+      "curr_conf": 0.3524
+    },
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 2,
+      "previous_frame": 470,
+      "current_frame": 598,
+      "frame_gap": 128,
+      "previous_x": 1055.34,
+      "previous_y": 1803.99,
+      "current_x": 721.76,
+      "current_y": 2062.97,
+      "pixel_jump": 422.3106,
+      "pixel_jump_per_frame_gap": 3.2993,
+      "smoothed_class": "SMG",
+      "prev_bbox_wh": [
+        769.3,
+        1510.5
+      ],
+      "curr_bbox_wh": [
+        1393.6,
+        994.1
+      ],
+      "prev_conf": 0.2607,
+      "curr_conf": 0.5656
+    },
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 21,
+      "previous_frame": 4348,
+      "current_frame": 4353,
+      "frame_gap": 5,
+      "previous_x": 687.33,
+      "previous_y": 1652.18,
+      "current_x": 709.92,
+      "current_y": 1287.97,
+      "pixel_jump": 364.9099,
+      "pixel_jump_per_frame_gap": 72.982,
+      "smoothed_class": "Pistol",
+      "prev_bbox_wh": [
+        1294.0,
+        1812.7
+      ],
+      "curr_bbox_wh": [
+        1368.9,
+        2456.8
+      ],
+      "prev_conf": 0.3704,
+      "curr_conf": 0.329
+    },
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 19,
+      "previous_frame": 3253,
+      "current_frame": 3254,
+      "frame_gap": 1,
+      "previous_x": 520.15,
+      "previous_y": 1198.83,
+      "current_x": 483.1,
+      "current_y": 879.52,
+      "pixel_jump": 321.4523,
+      "pixel_jump_per_frame_gap": 321.4523,
+      "smoothed_class": "Shotgun",
+      "prev_bbox_wh": [
+        987.8,
+        2379.1
+      ],
+      "curr_bbox_wh": [
+        966.2,
+        1755.1
+      ],
+      "prev_conf": 0.4514,
+      "curr_conf": 0.3898
+    },
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 24,
+      "previous_frame": 5488,
+      "current_frame": 5498,
+      "frame_gap": 10,
+      "previous_x": 970.53,
+      "previous_y": 1484.47,
+      "current_x": 724.24,
+      "current_y": 1281.43,
+      "pixel_jump": 319.1927,
+      "pixel_jump_per_frame_gap": 31.9193,
+      "smoothed_class": "SMG",
+      "prev_bbox_wh": [
+        938.6,
+        2133.7
+      ],
+      "curr_bbox_wh": [
+        1431.5,
+        2496.3
+      ],
+      "prev_conf": 0.2742,
+      "curr_conf": 0.4239
+    },
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 12,
+      "previous_frame": 2430,
+      "current_frame": 2469,
+      "frame_gap": 39,
+      "previous_x": 743.02,
+      "previous_y": 981.82,
+      "current_x": 905.3,
+      "current_y": 710.23,
+      "pixel_jump": 316.3794,
+      "pixel_jump_per_frame_gap": 8.1123,
+      "smoothed_class": "Shotgun",
+      "prev_bbox_wh": [
+        1394.0,
+        997.9
+      ],
+      "curr_bbox_wh": [
+        1064.8,
+        550.9
+      ],
+      "prev_conf": 0.2899,
+      "curr_conf": 0.4489
+    },
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 15,
+      "previous_frame": 2707,
+      "current_frame": 2714,
+      "frame_gap": 7,
+      "previous_x": 717.91,
+      "previous_y": 2237.54,
+      "current_x": 1028.78,
+      "current_y": 2264.64,
+      "pixel_jump": 312.049,
+      "pixel_jump_per_frame_gap": 44.5784,
+      "smoothed_class": "SMG",
+      "prev_bbox_wh": [
+        1435.8,
+        644.9
+      ],
+      "curr_bbox_wh": [
+        813.3,
+        590.7
+      ],
+      "prev_conf": 0.4405,
+      "curr_conf": 0.4841
+    },
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 20,
+      "previous_frame": 3271,
+      "current_frame": 3324,
+      "frame_gap": 53,
+      "previous_x": 446.66,
+      "previous_y": 1279.57,
+      "current_x": 477.41,
+      "current_y": 1576.26,
+      "pixel_jump": 298.2793,
+      "pixel_jump_per_frame_gap": 5.6279,
+      "smoothed_class": "Shotgun",
+      "prev_bbox_wh": [
+        893.3,
+        2559.1
+      ],
+      "curr_bbox_wh": [
+        954.8,
+        1964.1
+      ],
+      "prev_conf": 0.3005,
+      "curr_conf": 0.2908
+    },
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 9,
+      "previous_frame": 1926,
+      "current_frame": 1965,
+      "frame_gap": 39,
+      "previous_x": 691.71,
+      "previous_y": 1309.54,
+      "current_x": 712.29,
+      "current_y": 1598.2,
+      "pixel_jump": 289.3927,
+      "pixel_jump_per_frame_gap": 7.4203,
+      "smoothed_class": "Shotgun",
+      "prev_bbox_wh": [
+        1318.4,
+        2455.3
+      ],
+      "curr_bbox_wh": [
+        1398.0,
+        1922.5
+      ],
+      "prev_conf": 0.2906,
+      "curr_conf": 0.3006
+    },
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 30,
+      "previous_frame": 6676,
+      "current_frame": 6890,
+      "frame_gap": 214,
+      "previous_x": 839.73,
+      "previous_y": 1281.3,
+      "current_x": 836.81,
+      "current_y": 1539.45,
+      "pixel_jump": 258.1665,
+      "pixel_jump_per_frame_gap": 1.2064,
+      "smoothed_class": "SMG",
+      "prev_bbox_wh": [
+        1179.9,
+        2514.7
+      ],
+      "curr_bbox_wh": [
+        913.2,
+        2041.1
+      ],
+      "prev_conf": 0.3241,
+      "curr_conf": 0.3353
+    },
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 4,
+      "previous_frame": 852,
+      "current_frame": 860,
+      "frame_gap": 8,
+      "previous_x": 651.13,
+      "previous_y": 1636.36,
+      "current_x": 710.8,
+      "current_y": 1389.88,
+      "pixel_jump": 253.5999,
+      "pixel_jump_per_frame_gap": 31.7,
+      "smoothed_class": "SMG",
+      "prev_bbox_wh": [
+        808.6,
+        1463.7
+      ],
+      "curr_bbox_wh": [
+        850.1,
+        1917.4
+      ],
+      "prev_conf": 0.3058,
+      "curr_conf": 0.478
+    },
+    {
+      "video": "sample_video_02.mp4",
+      "track_id": 14,
+      "previous_frame": 1810,
+      "current_frame": 1853,
+      "frame_gap": 43,
+      "previous_x": 688.38,
+      "previous_y": 958.27,
+      "current_x": 543.39,
+      "current_y": 1158.84,
+      "pixel_jump": 247.4882,
+      "pixel_jump_per_frame_gap": 5.7555,
+      "smoothed_class": "grenade",
+      "prev_bbox_wh": [
+        782.6,
+        1395.2
+      ],
+      "curr_bbox_wh": [
+        1059.7,
+        986.4
+      ],
+      "prev_conf": 0.259,
+      "curr_conf": 0.385
+    },
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 4,
+      "previous_frame": 850,
+      "current_frame": 851,
+      "frame_gap": 1,
+      "previous_x": 632.84,
+      "previous_y": 1353.81,
+      "current_x": 620.09,
+      "current_y": 1597.76,
+      "pixel_jump": 244.283,
+      "pixel_jump_per_frame_gap": 244.283,
+      "smoothed_class": "SMG",
+      "prev_bbox_wh": [
+        751.8,
+        1343.8
+      ],
+      "curr_bbox_wh": [
+        757.7,
+        1656.8
+      ],
+      "prev_conf": 0.5385,
+      "curr_conf": 0.49
+    },
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 4,
+      "previous_frame": 799,
+      "current_frame": 803,
+      "frame_gap": 4,
+      "previous_x": 687.11,
+      "previous_y": 1348.8,
+      "current_x": 583.16,
+      "current_y": 1568.51,
+      "pixel_jump": 243.0598,
+      "pixel_jump_per_frame_gap": 60.765,
+      "smoothed_class": "SMG",
+      "prev_bbox_wh": [
+        815.6,
+        1297.4
+      ],
+      "curr_bbox_wh": [
+        1030.8,
+        1743.8
+      ],
+      "prev_conf": 0.328,
+      "curr_conf": 0.4501
+    },
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 9,
+      "previous_frame": 1858,
+      "current_frame": 1869,
+      "frame_gap": 11,
+      "previous_x": 722.73,
+      "previous_y": 1151.42,
+      "current_x": 696.15,
+      "current_y": 1390.01,
+      "pixel_jump": 240.066,
+      "pixel_jump_per_frame_gap": 21.8242,
+      "smoothed_class": "SMG",
+      "prev_bbox_wh": [
+        1010.9,
+        1761.5
+      ],
+      "curr_bbox_wh": [
+        1185.5,
+        2340.0
+      ],
+      "prev_conf": 0.2569,
+      "curr_conf": 0.3492
+    },
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 12,
+      "previous_frame": 2247,
+      "current_frame": 2249,
+      "frame_gap": 2,
+      "previous_x": 972.13,
+      "previous_y": 1051.2,
+      "current_x": 961.22,
+      "current_y": 1288.57,
+      "pixel_jump": 237.6206,
+      "pixel_jump_per_frame_gap": 118.8103,
+      "smoothed_class": "Shotgun",
+      "prev_bbox_wh": [
+        935.8,
+        1999.5
+      ],
+      "curr_bbox_wh": [
+        957.5,
+        2352.2
+      ],
+      "prev_conf": 0.3023,
+      "curr_conf": 0.3173
+    },
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 4,
+      "previous_frame": 846,
+      "current_frame": 848,
+      "frame_gap": 2,
+      "previous_x": 631.94,
+      "previous_y": 1568.51,
+      "current_x": 650.04,
+      "current_y": 1340.85,
+      "pixel_jump": 228.3784,
+      "pixel_jump_per_frame_gap": 114.1892,
+      "smoothed_class": "SMG",
+      "prev_bbox_wh": [
+        830.5,
+        1891.3
+      ],
+      "curr_bbox_wh": [
+        779.0,
+        1443.1
+      ],
+      "prev_conf": 0.4337,
+      "curr_conf": 0.5141
+    },
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 14,
+      "previous_frame": 2443,
+      "current_frame": 2444,
+      "frame_gap": 1,
+      "previous_x": 902.04,
+      "previous_y": 1352.98,
+      "current_x": 902.72,
+      "current_y": 1140.09,
+      "pixel_jump": 212.8911,
+      "pixel_jump_per_frame_gap": 212.8911,
+      "smoothed_class": "Sniper Dataset",
+      "prev_bbox_wh": [
+        1075.9,
+        1217.2
+      ],
+      "curr_bbox_wh": [
+        1052.6,
+        757.8
+      ],
+      "prev_conf": 0.3069,
+      "curr_conf": 0.3803
+    },
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 4,
+      "previous_frame": 764,
+      "current_frame": 768,
+      "frame_gap": 4,
+      "previous_x": 858.49,
+      "previous_y": 1307.98,
+      "current_x": 761.4,
+      "current_y": 1489.56,
+      "pixel_jump": 205.9072,
+      "pixel_jump_per_frame_gap": 51.4768,
+      "smoothed_class": "Sniper Dataset",
+      "prev_bbox_wh": [
+        1074.5,
+        1584.4
+      ],
+      "curr_bbox_wh": [
+        1218.0,
+        1930.2
+      ],
+      "prev_conf": 0.3296,
+      "curr_conf": 0.3947
+    }
+  ],
+  "top_highest_jump_rates_per_gap": [
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 19,
+      "previous_frame": 3253,
+      "current_frame": 3254,
+      "frame_gap": 1,
+      "previous_x": 520.15,
+      "previous_y": 1198.83,
+      "current_x": 483.1,
+      "current_y": 879.52,
+      "pixel_jump": 321.4523,
+      "pixel_jump_per_frame_gap": 321.4523,
+      "smoothed_class": "Shotgun",
+      "prev_bbox_wh": [
+        987.8,
+        2379.1
+      ],
+      "curr_bbox_wh": [
+        966.2,
+        1755.1
+      ],
+      "prev_conf": 0.4514,
+      "curr_conf": 0.3898
+    },
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 4,
+      "previous_frame": 850,
+      "current_frame": 851,
+      "frame_gap": 1,
+      "previous_x": 632.84,
+      "previous_y": 1353.81,
+      "current_x": 620.09,
+      "current_y": 1597.76,
+      "pixel_jump": 244.283,
+      "pixel_jump_per_frame_gap": 244.283,
+      "smoothed_class": "SMG",
+      "prev_bbox_wh": [
+        751.8,
+        1343.8
+      ],
+      "curr_bbox_wh": [
+        757.7,
+        1656.8
+      ],
+      "prev_conf": 0.5385,
+      "curr_conf": 0.49
+    },
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 14,
+      "previous_frame": 2443,
+      "current_frame": 2444,
+      "frame_gap": 1,
+      "previous_x": 902.04,
+      "previous_y": 1352.98,
+      "current_x": 902.72,
+      "current_y": 1140.09,
+      "pixel_jump": 212.8911,
+      "pixel_jump_per_frame_gap": 212.8911,
+      "smoothed_class": "Sniper Dataset",
+      "prev_bbox_wh": [
+        1075.9,
+        1217.2
+      ],
+      "curr_bbox_wh": [
+        1052.6,
+        757.8
+      ],
+      "prev_conf": 0.3069,
+      "curr_conf": 0.3803
+    },
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 21,
+      "previous_frame": 4657,
+      "current_frame": 4658,
+      "frame_gap": 1,
+      "previous_x": 900.12,
+      "previous_y": 1115.29,
+      "current_x": 862.31,
+      "current_y": 1308.06,
+      "pixel_jump": 196.443,
+      "pixel_jump_per_frame_gap": 196.443,
+      "smoothed_class": "Shotgun",
+      "prev_bbox_wh": [
+        1079.8,
+        2136.3
+      ],
+      "curr_bbox_wh": [
+        1155.4,
+        1891.2
+      ],
+      "prev_conf": 0.2619,
+      "curr_conf": 0.3128
+    },
+    {
+      "video": "sample_video_02.mp4",
+      "track_id": 12,
+      "previous_frame": 1379,
+      "current_frame": 1380,
+      "frame_gap": 1,
+      "previous_x": 644.88,
+      "previous_y": 998.1,
+      "current_x": 532.92,
+      "current_y": 880.48,
+      "pixel_jump": 162.3869,
+      "pixel_jump_per_frame_gap": 162.3869,
+      "smoothed_class": "grenade",
+      "prev_bbox_wh": [
+        745.0,
+        1281.2
+      ],
+      "curr_bbox_wh": [
+        754.2,
+        1284.0
+      ],
+      "prev_conf": 0.8207,
+      "curr_conf": 0.8087
+    },
+    {
+      "video": "sample_video_02.mp4",
+      "track_id": 7,
+      "previous_frame": 403,
+      "current_frame": 404,
+      "frame_gap": 1,
+      "previous_x": 551.06,
+      "previous_y": 1160.02,
+      "current_x": 538.55,
+      "current_y": 999.4,
+      "pixel_jump": 161.1064,
+      "pixel_jump_per_frame_gap": 161.1064,
+      "smoothed_class": "SMG",
+      "prev_bbox_wh": [
+        1057.9,
+        1022.1
+      ],
+      "curr_bbox_wh": [
+        1054.6,
+        1326.3
+      ],
+      "prev_conf": 0.2588,
+      "curr_conf": 0.4361
+    },
+    {
+      "video": "sample_video_02.mp4",
+      "track_id": 12,
+      "previous_frame": 1381,
+      "current_frame": 1382,
+      "frame_gap": 1,
+      "previous_x": 394.31,
+      "previous_y": 834.07,
+      "current_x": 329.52,
+      "current_y": 691.93,
+      "pixel_jump": 156.2099,
+      "pixel_jump_per_frame_gap": 156.2099,
+      "smoothed_class": "grenade",
+      "prev_bbox_wh": [
+        788.6,
+        1181.7
+      ],
+      "curr_bbox_wh": [
+        522.7,
+        875.3
+      ],
+      "prev_conf": 0.6362,
+      "curr_conf": 0.4738
+    },
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 31,
+      "previous_frame": 6702,
+      "current_frame": 6703,
+      "frame_gap": 1,
+      "previous_x": 911.37,
+      "previous_y": 1953.96,
+      "current_x": 909.59,
+      "current_y": 1799.81,
+      "pixel_jump": 154.1603,
+      "pixel_jump_per_frame_gap": 154.1603,
+      "smoothed_class": "Sniper Dataset",
+      "prev_bbox_wh": [
+        1056.4,
+        1208.2
+      ],
+      "curr_bbox_wh": [
+        1060.4,
+        1516.5
+      ],
+      "prev_conf": 0.2787,
+      "curr_conf": 0.2841
+    },
+    {
+      "video": "sample_video_03.mp4",
+      "track_id": 4,
+      "previous_frame": 760,
+      "current_frame": 761,
+      "frame_gap": 1,
+      "previous_x": 764.91,
+      "previous_y": 1441.78,
+      "current_x": 819.13,
+      "current_y": 1300.12,
+      "pixel_jump": 151.6818,
+      "pixel_jump_per_frame_gap": 151.6818,
+      "smoothed_class": "Sniper Dataset",
+      "prev_bbox_wh": [
+        1181.8,
+        1892.6
+      ],
+      "curr_bbox_wh": [
+        1172.7,
+        1593.2
+      ],
+      "prev_conf": 0.312,
+      "curr_conf": 0.3116
+    },
+    {
+      "video": "sample_video_02.mp4",
+      "track_id": 12,
+      "previous_frame": 1380,
+      "current_frame": 1381,
+      "frame_gap": 1,
+      "previous_x": 532.92,
+      "previous_y": 880.48,
+      "current_x": 394.31,
+      "current_y": 834.07,
+      "pixel_jump": 146.1733,
+      "pixel_jump_per_frame_gap": 146.1733,
+      "smoothed_class": "grenade",
+      "prev_bbox_wh": [
+        754.2,
+        1284.0
+      ],
+      "curr_bbox_wh": [
+        788.6,
+        1181.7
+      ],
+      "prev_conf": 0.8087,
+      "curr_conf": 0.6362
+    }
+  ],
+  "quality_flags_summary": {
+    "CLEAN_TRACK": {
+      "count": 22,
+      "tracks": [
+        {
+          "video": "sample_video_01.mp4",
+          "track_id": 1
+        },
+        {
+          "video": "sample_video_01.mp4",
+          "track_id": 2
+        },
+        {
+          "video": "sample_video_01.mp4",
+          "track_id": 5
+        },
+        {
+          "video": "sample_video_01.mp4",
+          "track_id": 6
+        },
+        {
+          "video": "sample_video_01.mp4",
+          "track_id": 7
+        },
+        {
+          "video": "sample_video_01.mp4",
+          "track_id": 8
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 1
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 4
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 7
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 8
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 10
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 11
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 12
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 3
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 6
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 8
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 13
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 14
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 16
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 25
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 29
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 31
+        }
+      ]
+    },
+    "FLAG_F_VERY_LOW_STRAIGHTNESS": {
+      "count": 12,
+      "tracks": [
+        {
+          "video": "sample_video_01.mp4",
+          "track_id": 3
+        },
+        {
+          "video": "sample_video_01.mp4",
+          "track_id": 9
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 2
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 9
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 17
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 4
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 5
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 7
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 17
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 21
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 26
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 30
+        }
+      ]
+    },
+    "FLAG_G_HIGH_DISTANCE_VS_DISPLACEMENT": {
+      "count": 12,
+      "tracks": [
+        {
+          "video": "sample_video_01.mp4",
+          "track_id": 3
+        },
+        {
+          "video": "sample_video_01.mp4",
+          "track_id": 9
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 2
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 9
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 17
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 4
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 5
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 7
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 17
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 21
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 26
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 30
+        }
+      ]
+    },
+    "FLAG_C_LARGE_FRAME_GAP_GT10": {
+      "count": 6,
+      "tracks": [
+        {
+          "video": "sample_video_01.mp4",
+          "track_id": 4
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 5
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 17
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 18
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 23
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 28
+        }
+      ]
+    },
+    "FLAG_C_EXTREME_FRAME_GAP_GT30": {
+      "count": 17,
+      "tracks": [
+        {
+          "video": "sample_video_01.mp4",
+          "track_id": 9
+        },
+        {
+          "video": "sample_video_01.mp4",
+          "track_id": 12
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 9
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 14
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 2
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 4
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 9
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 10
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 11
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 12
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 17
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 20
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 21
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 22
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 24
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 26
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 30
+        }
+      ]
+    },
+    "FLAG_B_FEW_DETECTIONS": {
+      "count": 7,
+      "tracks": [
+        {
+          "video": "sample_video_01.mp4",
+          "track_id": 10
+        },
+        {
+          "video": "sample_video_01.mp4",
+          "track_id": 11
+        },
+        {
+          "video": "sample_video_01.mp4",
+          "track_id": 13
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 3
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 15
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 16
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 27
+        }
+      ]
+    },
+    "FLAG_A_SINGLE_DETECTION": {
+      "count": 3,
+      "tracks": [
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 6
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 13
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 1
+        }
+      ]
+    },
+    "FLAG_D_LARGE_SPATIAL_JUMP": {
+      "count": 6,
+      "tracks": [
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 14
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 2
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 12
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 15
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 19
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 20
+        }
+      ]
+    },
+    "FLAG_E_REPEATED_LARGE_JUMPS": {
+      "count": 2,
+      "tracks": [
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 21
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 24
+        }
+      ]
+    }
+  },
+  "extreme_tracks_investigation": {
+    "sample_video_03.mp4_track_21": {
+      "video_name": "sample_video_03.mp4",
+      "track_id": 21,
+      "num_detections": 630,
+      "first_frame": 3406,
+      "last_frame": 4726,
+      "duration_seconds": 22.0,
+      "total_distance_pixels": 8218.4091,
+      "displacement_pixels": 97.3209,
+      "straightness_ratio": 0.0118,
+      "max_frame_gap": 447,
+      "mean_frame_gap": 2.0986,
+      "max_pixel_jump": 520.1165,
+      "max_jump_frame_gap": 51,
+      "max_jump_per_frame_gap": 10.1984,
+      "quality_flags": "FLAG_C_EXTREME_FRAME_GAP_GT30;FLAG_E_REPEATED_LARGE_JUMPS;FLAG_F_VERY_LOW_STRAIGHTNESS;FLAG_G_HIGH_DISTANCE_VS_DISPLACEMENT",
+      "top_5_largest_jumps": [
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 21,
+          "previous_frame": 4357,
+          "current_frame": 4408,
+          "frame_gap": 51,
+          "previous_x": 715.77,
+          "previous_y": 1389.05,
+          "current_x": 780.92,
+          "current_y": 873.03,
+          "pixel_jump": 520.1165,
+          "pixel_jump_per_frame_gap": 10.1984,
+          "smoothed_class": "Pistol",
+          "prev_bbox_wh": [
+            1387.6,
+            2284.2
+          ],
+          "curr_bbox_wh": [
+            1318.2,
+            1653.4
+          ],
+          "prev_conf": 0.34,
+          "curr_conf": 0.3524
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 21,
+          "previous_frame": 4348,
+          "current_frame": 4353,
+          "frame_gap": 5,
+          "previous_x": 687.33,
+          "previous_y": 1652.18,
+          "current_x": 709.92,
+          "current_y": 1287.97,
+          "pixel_jump": 364.9099,
+          "pixel_jump_per_frame_gap": 72.982,
+          "smoothed_class": "Pistol",
+          "prev_bbox_wh": [
+            1294.0,
+            1812.7
+          ],
+          "curr_bbox_wh": [
+            1368.9,
+            2456.8
+          ],
+          "prev_conf": 0.3704,
+          "curr_conf": 0.329
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 21,
+          "previous_frame": 4657,
+          "current_frame": 4658,
+          "frame_gap": 1,
+          "previous_x": 900.12,
+          "previous_y": 1115.29,
+          "current_x": 862.31,
+          "current_y": 1308.06,
+          "pixel_jump": 196.443,
+          "pixel_jump_per_frame_gap": 196.443,
+          "smoothed_class": "Shotgun",
+          "prev_bbox_wh": [
+            1079.8,
+            2136.3
+          ],
+          "curr_bbox_wh": [
+            1155.4,
+            1891.2
+          ],
+          "prev_conf": 0.2619,
+          "curr_conf": 0.3128
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 21,
+          "previous_frame": 4434,
+          "current_frame": 4453,
+          "frame_gap": 19,
+          "previous_x": 930.43,
+          "previous_y": 811.88,
+          "current_x": 954.96,
+          "current_y": 997.52,
+          "pixel_jump": 187.2537,
+          "pixel_jump_per_frame_gap": 9.8555,
+          "smoothed_class": "Shotgun",
+          "prev_bbox_wh": [
+            1019.1,
+            1520.7
+          ],
+          "curr_bbox_wh": [
+            970.1,
+            1917.5
+          ],
+          "prev_conf": 0.2705,
+          "curr_conf": 0.2825
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 21,
+          "previous_frame": 4180,
+          "current_frame": 4188,
+          "frame_gap": 8,
+          "previous_x": 972.47,
+          "previous_y": 1496.84,
+          "current_x": 809.91,
+          "current_y": 1578.38,
+          "pixel_jump": 181.864,
+          "pixel_jump_per_frame_gap": 22.733,
+          "smoothed_class": "Shotgun",
+          "prev_bbox_wh": [
+            935.0,
+            2099.5
+          ],
+          "curr_bbox_wh": [
+            1260.2,
+            1963.2
+          ],
+          "prev_conf": 0.2802,
+          "curr_conf": 0.3591
+        }
+      ]
+    },
+    "sample_video_03.mp4_track_24": {
+      "video_name": "sample_video_03.mp4",
+      "track_id": 24,
+      "num_detections": 183,
+      "first_frame": 5312,
+      "last_frame": 5604,
+      "duration_seconds": 4.8667,
+      "total_distance_pixels": 4273.2683,
+      "displacement_pixels": 811.1393,
+      "straightness_ratio": 0.1898,
+      "max_frame_gap": 77,
+      "mean_frame_gap": 1.6044,
+      "max_pixel_jump": 796.4744,
+      "max_jump_frame_gap": 6,
+      "max_jump_per_frame_gap": 132.7457,
+      "quality_flags": "FLAG_C_EXTREME_FRAME_GAP_GT30;FLAG_E_REPEATED_LARGE_JUMPS",
+      "top_5_largest_jumps": [
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 24,
+          "previous_frame": 5598,
+          "current_frame": 5604,
+          "frame_gap": 6,
+          "previous_x": 717.77,
+          "previous_y": 1296.27,
+          "current_x": 715.12,
+          "current_y": 2092.74,
+          "pixel_jump": 796.4744,
+          "pixel_jump_per_frame_gap": 132.7457,
+          "smoothed_class": "Shotgun",
+          "prev_bbox_wh": [
+            1435.5,
+            2504.0
+          ],
+          "curr_bbox_wh": [
+            1430.2,
+            934.5
+          ],
+          "prev_conf": 0.2803,
+          "curr_conf": 0.6907
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 24,
+          "previous_frame": 5488,
+          "current_frame": 5498,
+          "frame_gap": 10,
+          "previous_x": 970.53,
+          "previous_y": 1484.47,
+          "current_x": 724.24,
+          "current_y": 1281.43,
+          "pixel_jump": 319.1927,
+          "pixel_jump_per_frame_gap": 31.9193,
+          "smoothed_class": "SMG",
+          "prev_bbox_wh": [
+            938.6,
+            2133.7
+          ],
+          "curr_bbox_wh": [
+            1431.5,
+            2496.3
+          ],
+          "prev_conf": 0.2742,
+          "curr_conf": 0.4239
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 24,
+          "previous_frame": 5371,
+          "current_frame": 5372,
+          "frame_gap": 1,
+          "previous_x": 723.4,
+          "previous_y": 1487.62,
+          "current_x": 723.24,
+          "current_y": 1357.65,
+          "pixel_jump": 129.9701,
+          "pixel_jump_per_frame_gap": 129.9701,
+          "smoothed_class": "Shotgun",
+          "prev_bbox_wh": [
+            1426.4,
+            2144.8
+          ],
+          "curr_bbox_wh": [
+            1427.6,
+            2404.7
+          ],
+          "prev_conf": 0.5183,
+          "curr_conf": 0.5452
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 24,
+          "previous_frame": 5375,
+          "current_frame": 5376,
+          "frame_gap": 1,
+          "previous_x": 730.25,
+          "previous_y": 1464.69,
+          "current_x": 732.01,
+          "current_y": 1343.57,
+          "pixel_jump": 121.1328,
+          "pixel_jump_per_frame_gap": 121.1328,
+          "smoothed_class": "Shotgun",
+          "prev_bbox_wh": [
+            1419.5,
+            2190.6
+          ],
+          "curr_bbox_wh": [
+            1412.2,
+            2432.9
+          ],
+          "prev_conf": 0.4428,
+          "curr_conf": 0.3987
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 24,
+          "previous_frame": 5445,
+          "current_frame": 5457,
+          "frame_gap": 12,
+          "previous_x": 850.07,
+          "previous_y": 1348.75,
+          "current_x": 834.8,
+          "current_y": 1461.55,
+          "pixel_jump": 113.8289,
+          "pixel_jump_per_frame_gap": 9.4857,
+          "smoothed_class": "SMG",
+          "prev_bbox_wh": [
+            1179.9,
+            2422.5
+          ],
+          "curr_bbox_wh": [
+            1210.4,
+            2196.9
+          ],
+          "prev_conf": 0.2551,
+          "curr_conf": 0.3056
+        }
+      ]
+    },
+    "sample_video_03.mp4_track_2": {
+      "video_name": "sample_video_03.mp4",
+      "track_id": 2,
+      "num_detections": 326,
+      "first_frame": 14,
+      "last_frame": 604,
+      "duration_seconds": 9.8333,
+      "total_distance_pixels": 6101.5948,
+      "displacement_pixels": 810.5013,
+      "straightness_ratio": 0.1328,
+      "max_frame_gap": 128,
+      "mean_frame_gap": 1.8154,
+      "max_pixel_jump": 422.3106,
+      "max_jump_frame_gap": 128,
+      "max_jump_per_frame_gap": 3.2993,
+      "quality_flags": "FLAG_C_EXTREME_FRAME_GAP_GT30;FLAG_D_LARGE_SPATIAL_JUMP",
+      "top_5_largest_jumps": [
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 2,
+          "previous_frame": 470,
+          "current_frame": 598,
+          "frame_gap": 128,
+          "previous_x": 1055.34,
+          "previous_y": 1803.99,
+          "current_x": 721.76,
+          "current_y": 2062.97,
+          "pixel_jump": 422.3106,
+          "pixel_jump_per_frame_gap": 3.2993,
+          "smoothed_class": "SMG",
+          "prev_bbox_wh": [
+            769.3,
+            1510.5
+          ],
+          "curr_bbox_wh": [
+            1393.6,
+            994.1
+          ],
+          "prev_conf": 0.2607,
+          "curr_conf": 0.5656
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 2,
+          "previous_frame": 252,
+          "current_frame": 266,
+          "frame_gap": 14,
+          "previous_x": 836.06,
+          "previous_y": 1116.88,
+          "current_x": 912.93,
+          "current_y": 1251.17,
+          "pixel_jump": 154.7346,
+          "pixel_jump_per_frame_gap": 11.0525,
+          "smoothed_class": "Shotgun",
+          "prev_bbox_wh": [
+            1207.5,
+            1170.0
+          ],
+          "curr_bbox_wh": [
+            1053.5,
+            1976.2
+          ],
+          "prev_conf": 0.3779,
+          "curr_conf": 0.7177
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 2,
+          "previous_frame": 62,
+          "current_frame": 66,
+          "frame_gap": 4,
+          "previous_x": 974.51,
+          "previous_y": 1485.82,
+          "current_x": 840.07,
+          "current_y": 1511.88,
+          "pixel_jump": 136.9425,
+          "pixel_jump_per_frame_gap": 34.2356,
+          "smoothed_class": "SMG",
+          "prev_bbox_wh": [
+            931.0,
+            1972.3
+          ],
+          "curr_bbox_wh": [
+            1199.8,
+            2000.7
+          ],
+          "prev_conf": 0.362,
+          "curr_conf": 0.291
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 2,
+          "previous_frame": 33,
+          "current_frame": 47,
+          "frame_gap": 14,
+          "previous_x": 846.54,
+          "previous_y": 1406.5,
+          "current_x": 887.7,
+          "current_y": 1533.99,
+          "pixel_jump": 133.9696,
+          "pixel_jump_per_frame_gap": 9.5693,
+          "smoothed_class": "SMG",
+          "prev_bbox_wh": [
+            1186.9,
+            2224.6
+          ],
+          "curr_bbox_wh": [
+            1104.6,
+            1968.6
+          ],
+          "prev_conf": 0.2767,
+          "curr_conf": 0.4375
+        },
+        {
+          "video": "sample_video_03.mp4",
+          "track_id": 2,
+          "previous_frame": 25,
+          "current_frame": 26,
+          "frame_gap": 1,
+          "previous_x": 895.43,
+          "previous_y": 1299.87,
+          "current_x": 873.42,
+          "current_y": 1425.42,
+          "pixel_jump": 127.4647,
+          "pixel_jump_per_frame_gap": 127.4647,
+          "smoothed_class": "SMG",
+          "prev_bbox_wh": [
+            1089.1,
+            2293.8
+          ],
+          "curr_bbox_wh": [
+            1133.2,
+            2124.8
+          ],
+          "prev_conf": 0.3819,
+          "curr_conf": 0.5058
+        }
+      ]
+    },
+    "sample_video_02.mp4_track_14": {
+      "video_name": "sample_video_02.mp4",
+      "track_id": 14,
+      "num_detections": 121,
+      "first_frame": 1589,
+      "last_frame": 1853,
+      "duration_seconds": 8.7995,
+      "total_distance_pixels": 2352.2967,
+      "displacement_pixels": 448.4785,
+      "straightness_ratio": 0.1907,
+      "max_frame_gap": 102,
+      "mean_frame_gap": 2.2,
+      "max_pixel_jump": 247.4882,
+      "max_jump_frame_gap": 43,
+      "max_jump_per_frame_gap": 5.7555,
+      "quality_flags": "FLAG_C_EXTREME_FRAME_GAP_GT30;FLAG_D_LARGE_SPATIAL_JUMP",
+      "top_5_largest_jumps": [
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 14,
+          "previous_frame": 1810,
+          "current_frame": 1853,
+          "frame_gap": 43,
+          "previous_x": 688.38,
+          "previous_y": 958.27,
+          "current_x": 543.39,
+          "current_y": 1158.84,
+          "pixel_jump": 247.4882,
+          "pixel_jump_per_frame_gap": 5.7555,
+          "smoothed_class": "grenade",
+          "prev_bbox_wh": [
+            782.6,
+            1395.2
+          ],
+          "curr_bbox_wh": [
+            1059.7,
+            986.4
+          ],
+          "prev_conf": 0.259,
+          "curr_conf": 0.385
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 14,
+          "previous_frame": 1589,
+          "current_frame": 1691,
+          "frame_gap": 102,
+          "previous_x": 947.68,
+          "previous_y": 964.72,
+          "current_x": 872.94,
+          "current_y": 1115.12,
+          "pixel_jump": 167.9471,
+          "pixel_jump_per_frame_gap": 1.6465,
+          "smoothed_class": "grenade",
+          "prev_bbox_wh": [
+            264.6,
+            1405.7
+          ],
+          "curr_bbox_wh": [
+            413.5,
+            872.7
+          ],
+          "prev_conf": 0.3876,
+          "curr_conf": 0.6721
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 14,
+          "previous_frame": 1785,
+          "current_frame": 1786,
+          "frame_gap": 1,
+          "previous_x": 520.19,
+          "previous_y": 722.44,
+          "current_x": 641.07,
+          "current_y": 701.78,
+          "pixel_jump": 122.6328,
+          "pixel_jump_per_frame_gap": 122.6328,
+          "smoothed_class": "grenade",
+          "prev_bbox_wh": [
+            618.7,
+            867.3
+          ],
+          "curr_bbox_wh": [
+            869.9,
+            920.4
+          ],
+          "prev_conf": 0.2651,
+          "curr_conf": 0.3281
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 14,
+          "previous_frame": 1691,
+          "current_frame": 1692,
+          "frame_gap": 1,
+          "previous_x": 872.94,
+          "previous_y": 1115.12,
+          "current_x": 886.01,
+          "current_y": 1048.51,
+          "pixel_jump": 67.8802,
+          "pixel_jump_per_frame_gap": 67.8802,
+          "smoothed_class": "grenade",
+          "prev_bbox_wh": [
+            413.5,
+            872.7
+          ],
+          "curr_bbox_wh": [
+            386.3,
+            858.1
+          ],
+          "prev_conf": 0.6721,
+          "curr_conf": 0.7698
+        },
+        {
+          "video": "sample_video_02.mp4",
+          "track_id": 14,
+          "previous_frame": 1693,
+          "current_frame": 1694,
+          "frame_gap": 1,
+          "previous_x": 890.81,
+          "previous_y": 983.59,
+          "current_x": 896.86,
+          "current_y": 917.68,
+          "pixel_jump": 66.1871,
+          "pixel_jump_per_frame_gap": 66.1871,
+          "smoothed_class": "grenade",
+          "prev_bbox_wh": [
+            378.1,
+            860.2
+          ],
+          "curr_bbox_wh": [
+            365.3,
+            889.1
+          ],
+          "prev_conf": 0.8306,
+          "curr_conf": 0.8399
+        }
+      ]
+    }
+  }
+}

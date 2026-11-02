@@ -1,0 +1,44 @@
+{
+  "sample_video_01.mp4": {
+    "duration": 78.29166666666667,
+    "fps": 24.0,
+    "resolution": "1080x1920",
+    "total_frames": 1879,
+    "codec": "AV01",
+    "sample_frames": [
+      "phase2/dataset/processed/sample_frames/sample_video_01.mp4_f187.jpg",
+      "phase2/dataset/processed/sample_frames/sample_video_01.mp4_f469.jpg",
+      "phase2/dataset/processed/sample_frames/sample_video_01.mp4_f939.jpg",
+      "phase2/dataset/processed/sample_frames/sample_video_01.mp4_f1409.jpg",
+      "phase2/dataset/processed/sample_frames/sample_video_01.mp4_f1691.jpg"
+    ]
+  },
+  "sample_video_02.mp4": {
+    "duration": 76.396,
+    "fps": 30.001570762867164,
+    "resolution": "1080x1920",
+    "total_frames": 2292,
+    "codec": "VP90",
+    "sample_frames": [
+      "phase2/dataset/processed/sample_frames/sample_video_02.mp4_f229.jpg",
+      "phase2/dataset/processed/sample_frames/sample_video_02.mp4_f573.jpg",
+      "phase2/dataset/processed/sample_frames/sample_video_02.mp4_f1146.jpg",
+      "phase2/dataset/processed/sample_frames/sample_video_02.mp4_f1719.jpg",
+      "phase2/dataset/processed/sample_frames/sample_video_02.mp4_f2062.jpg"
+    ]
+  },
+  "sample_video_03.mp4": {
+    "duration": 118.18333333333334,
+    "fps": 60.0,
+    "resolution": "1440x2560",
+    "total_frames": 7091,
+    "codec": "AV01",
+    "sample_frames": [
+      "phase2/dataset/processed/sample_frames/sample_video_03.mp4_f709.jpg",
+      "phase2/dataset/processed/sample_frames/sample_video_03.mp4_f1772.jpg",
+      "phase2/dataset/processed/sample_frames/sample_video_03.mp4_f3545.jpg",
+      "phase2/dataset/processed/sample_frames/sample_video_03.mp4_f5318.jpg",
+      "phase2/dataset/processed/sample_frames/sample_video_03.mp4_f6381.jpg"
+    ]
+  }
+}

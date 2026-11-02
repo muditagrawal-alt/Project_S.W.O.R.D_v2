@@ -1,0 +1,449 @@
+{
+  "analysis_type": "Phase 2 Spatial Trajectory Analysis",
+  "coordinate_space": "Pixel-space (X: 0 to Width, Y: 0 to Height, origin at top-left)",
+  "videos_analyzed": {
+    "sample_video_01.mp4": {
+      "video_name": "sample_video_01.mp4",
+      "resolution": "1080x1920",
+      "fps_used": 24.0,
+      "total_video_frames": 1879,
+      "unique_track_ids": 13,
+      "total_detections_used": 648,
+      "statistics": {
+        "total_distance_pixels": {
+          "min": 18.25,
+          "max": 2298.01,
+          "mean": 609.96,
+          "median": 199.96,
+          "sum": 7929.54
+        },
+        "displacement_pixels": {
+          "min": 18.25,
+          "max": 540.12,
+          "mean": 139.03,
+          "median": 125.34
+        },
+        "straightness_ratio": {
+          "min": 0.0422,
+          "max": 1.0,
+          "mean": 0.5252,
+          "median": 0.4626
+        },
+        "duration_seconds": {
+          "min": 0.0417,
+          "max": 18.25,
+          "mean": 3.0897,
+          "median": 1.0
+        },
+        "average_distance_per_frame_pixels": {
+          "min": 4.0487,
+          "max": 39.9927,
+          "mean": 15.0708,
+          "median": 10.6884
+        },
+        "longest_distance_track": {
+          "track_id": 9,
+          "class": "SMG",
+          "distance_pixels": 2298.0109,
+          "displacement_pixels": 210.6508,
+          "num_detections": 167
+        },
+        "longest_duration_track": {
+          "track_id": 12,
+          "class": "SMG",
+          "duration_seconds": 18.25,
+          "num_detections": 221
+        }
+      },
+      "special_tracks": {
+        "single_detection_tracks": {
+          "count": 0,
+          "track_ids": []
+        },
+        "few_detections_tracks": {
+          "threshold_detections": 3,
+          "count": 3,
+          "track_ids": [
+            10,
+            11,
+            13
+          ]
+        },
+        "zero_motion_tracks": {
+          "count": 0,
+          "track_ids": []
+        },
+        "suspiciously_large_jumps": {
+          "threshold_pixels": 220.29,
+          "count": 0,
+          "jumps": []
+        }
+      }
+    },
+    "sample_video_02.mp4": {
+      "video_name": "sample_video_02.mp4",
+      "resolution": "1080x1920",
+      "fps_used": 30.001570762867164,
+      "total_video_frames": 2292,
+      "unique_track_ids": 17,
+      "total_detections_used": 1028,
+      "statistics": {
+        "total_distance_pixels": {
+          "min": 0.0,
+          "max": 2514.43,
+          "mean": 970.7,
+          "median": 410.38,
+          "sum": 16501.96
+        },
+        "displacement_pixels": {
+          "min": 0.0,
+          "max": 535.65,
+          "mean": 167.07,
+          "median": 130.44
+        },
+        "straightness_ratio": {
+          "min": 0.0563,
+          "max": 1.0,
+          "mean": 0.5112,
+          "median": 0.5026
+        },
+        "duration_seconds": {
+          "min": 0.0,
+          "max": 21.5655,
+          "mean": 3.7018,
+          "median": 1.2999
+        },
+        "average_distance_per_frame_pixels": {
+          "min": 0.0,
+          "max": 41.9095,
+          "mean": 14.1239,
+          "median": 8.9102
+        },
+        "longest_distance_track": {
+          "track_id": 7,
+          "class": "SMG",
+          "distance_pixels": 2514.4262,
+          "displacement_pixels": 332.0831,
+          "num_detections": 69
+        },
+        "longest_duration_track": {
+          "track_id": 9,
+          "class": "SMG",
+          "duration_seconds": 21.5655,
+          "num_detections": 86
+        }
+      },
+      "special_tracks": {
+        "single_detection_tracks": {
+          "count": 2,
+          "track_ids": [
+            6,
+            13
+          ]
+        },
+        "few_detections_tracks": {
+          "threshold_detections": 3,
+          "count": 5,
+          "track_ids": [
+            3,
+            6,
+            13,
+            15,
+            16
+          ]
+        },
+        "zero_motion_tracks": {
+          "count": 2,
+          "track_ids": [
+            6,
+            13
+          ]
+        },
+        "suspiciously_large_jumps": {
+          "threshold_pixels": 220.29,
+          "count": 1,
+          "jumps": [
+            {
+              "track_id": 14,
+              "class": "grenade",
+              "from_frame": 1810,
+              "to_frame": 1853,
+              "jump_pixels": 247.49,
+              "frame_gap": 43
+            }
+          ]
+        }
+      }
+    },
+    "sample_video_03.mp4": {
+      "video_name": "sample_video_03.mp4",
+      "resolution": "1440x2560",
+      "fps_used": 60.0,
+      "total_video_frames": 7091,
+      "unique_track_ids": 31,
+      "total_detections_used": 3269,
+      "statistics": {
+        "total_distance_pixels": {
+          "min": 0.0,
+          "max": 8218.41,
+          "mean": 1570.76,
+          "median": 605.09,
+          "sum": 48693.58
+        },
+        "displacement_pixels": {
+          "min": 0.0,
+          "max": 858.95,
+          "mean": 249.34,
+          "median": 152.01
+        },
+        "straightness_ratio": {
+          "min": 0.0059,
+          "max": 1.0,
+          "mean": 0.3987,
+          "median": 0.315
+        },
+        "duration_seconds": {
+          "min": 0.0,
+          "max": 22.0,
+          "mean": 3.107,
+          "median": 1.3667
+        },
+        "average_distance_per_frame_pixels": {
+          "min": 0.0,
+          "max": 50.4244,
+          "mean": 13.1162,
+          "median": 9.8635
+        },
+        "longest_distance_track": {
+          "track_id": 21,
+          "class": "Shotgun",
+          "distance_pixels": 8218.4091,
+          "displacement_pixels": 97.3209,
+          "num_detections": 630
+        },
+        "longest_duration_track": {
+          "track_id": 21,
+          "class": "Shotgun",
+          "duration_seconds": 22.0,
+          "num_detections": 630
+        }
+      },
+      "special_tracks": {
+        "single_detection_tracks": {
+          "count": 1,
+          "track_ids": [
+            1
+          ]
+        },
+        "few_detections_tracks": {
+          "threshold_detections": 3,
+          "count": 2,
+          "track_ids": [
+            1,
+            27
+          ]
+        },
+        "zero_motion_tracks": {
+          "count": 1,
+          "track_ids": [
+            1
+          ]
+        },
+        "suspiciously_large_jumps": {
+          "threshold_pixels": 293.72,
+          "count": 9,
+          "jumps": [
+            {
+              "track_id": 2,
+              "class": "SMG",
+              "from_frame": 470,
+              "to_frame": 598,
+              "jump_pixels": 422.31,
+              "frame_gap": 128
+            },
+            {
+              "track_id": 12,
+              "class": "Shotgun",
+              "from_frame": 2430,
+              "to_frame": 2469,
+              "jump_pixels": 316.38,
+              "frame_gap": 39
+            },
+            {
+              "track_id": 15,
+              "class": "SMG",
+              "from_frame": 2707,
+              "to_frame": 2714,
+              "jump_pixels": 312.05,
+              "frame_gap": 7
+            },
+            {
+              "track_id": 19,
+              "class": "Shotgun",
+              "from_frame": 3253,
+              "to_frame": 3254,
+              "jump_pixels": 321.45,
+              "frame_gap": 1
+            },
+            {
+              "track_id": 20,
+              "class": "Shotgun",
+              "from_frame": 3271,
+              "to_frame": 3324,
+              "jump_pixels": 298.28,
+              "frame_gap": 53
+            },
+            {
+              "track_id": 21,
+              "class": "Shotgun",
+              "from_frame": 4348,
+              "to_frame": 4353,
+              "jump_pixels": 364.91,
+              "frame_gap": 5
+            },
+            {
+              "track_id": 21,
+              "class": "Shotgun",
+              "from_frame": 4357,
+              "to_frame": 4408,
+              "jump_pixels": 520.12,
+              "frame_gap": 51
+            },
+            {
+              "track_id": 24,
+              "class": "Shotgun",
+              "from_frame": 5488,
+              "to_frame": 5498,
+              "jump_pixels": 319.19,
+              "frame_gap": 10
+            },
+            {
+              "track_id": 24,
+              "class": "Shotgun",
+              "from_frame": 5598,
+              "to_frame": 5604,
+              "jump_pixels": 796.47,
+              "frame_gap": 6
+            }
+          ]
+        }
+      }
+    }
+  },
+  "overall_summary": {
+    "total_videos": 3,
+    "total_trajectories_calculated": 61,
+    "total_detections_processed": 4945,
+    "all_videos_summary_csv": "phase2\\dataset\\outputs\\reports\\trajectory\\trajectory_summary_all_videos.csv"
+  },
+  "validation_results": {
+    "check_1_sorted_by_frame_id": {
+      "status": "PASS",
+      "description": "Every trajectory observation is strictly sorted by frame_id in ascending order.",
+      "issues": []
+    },
+    "check_2_no_nan_values": {
+      "status": "PASS",
+      "description": "Zero NaN values detected across all summary rows and metrics."
+    },
+    "check_3_no_infinite_values": {
+      "status": "PASS",
+      "description": "Zero infinite values detected across all summary rows and metrics."
+    },
+    "check_4_summary_rows_equal_unique_track_ids": {
+      "status": "PASS",
+      "description": "Number of trajectory summary rows exactly matches unique Track IDs in each video.",
+      "details": {
+        "sample_video_01.mp4": {
+          "expected_tracks": 13,
+          "summary_rows": 13
+        },
+        "sample_video_02.mp4": {
+          "expected_tracks": 17,
+          "summary_rows": 17
+        },
+        "sample_video_03.mp4": {
+          "expected_tracks": 31,
+          "summary_rows": 31
+        }
+      }
+    },
+    "check_5_manual_verification_sample_tracks": {
+      "status": "PASS",
+      "description": "Step-by-step arithmetic independently verified for Track 1 and Track 2 of Sample Video 1.",
+      "verified_tracks": {
+        "sample_video_01_track_1": {
+          "start": [
+            314.15,
+            1326.72
+          ],
+          "end": [
+            189.26,
+            1337.36
+          ],
+          "displacement_formula": 125.3424,
+          "recorded_displacement": 125.3424,
+          "recorded_total_distance": 164.6419,
+          "recorded_duration_seconds": 0.5,
+          "match": true
+        },
+        "sample_video_01_track_2": {
+          "start": [
+            434.5,
+            816.27
+          ],
+          "end": [
+            467.37,
+            1003.87
+          ],
+          "displacement_formula": 190.4579,
+          "recorded_displacement": 190.4579,
+          "recorded_total_distance": 199.9636,
+          "recorded_duration_seconds": 0.2083,
+          "match": true
+        }
+      }
+    },
+    "check_6_first_last_coordinates_match_source": {
+      "status": "PASS",
+      "description": "Start and end coordinates in all summary CSVs exactly match first and last observations in smoothed CSVs."
+    },
+    "check_7_fps_from_actual_source_video": {
+      "status": "PASS",
+      "description": "Video FPS values strictly queried and validated from actual MP4 video files via OpenCV.",
+      "details": {
+        "sample_video_01.mp4": {
+          "source_video_fps": 24.0,
+          "reported_fps": 24.0
+        },
+        "sample_video_02.mp4": {
+          "source_video_fps": 30.001570762867164,
+          "reported_fps": 30.001570762867164
+        },
+        "sample_video_03.mp4": {
+          "source_video_fps": 60.0,
+          "reported_fps": 60.0
+        }
+      }
+    },
+    "check_8_consecutive_points_only": {
+      "status": "PASS",
+      "description": "Distance accumulation loops strictly over consecutive observations: (obs[i], obs[i+1])."
+    },
+    "check_9_no_interpolation_of_missing_detections": {
+      "status": "PASS",
+      "description": "Zero synthetic frames or interpolated coordinate points were added. Only actual ByteTrack observations are processed."
+    },
+    "check_10_special_track_categorization": {
+      "status": "PASS",
+      "description": "Comprehensive categorization of single-detection, few-detection, zero-motion, and large-jump tracks.",
+      "summary": {
+        "total_single_detection_tracks": 3,
+        "total_few_detection_tracks": 10,
+        "total_zero_motion_tracks": 3,
+        "total_large_jump_tracks": 10
+      }
+    },
+    "overall_validation_status": "ALL CHECKS PASSED"
+  }
+}
