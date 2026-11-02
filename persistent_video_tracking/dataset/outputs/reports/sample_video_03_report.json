@@ -1,0 +1,430 @@
+{
+  "video_name": "sample_video_03.mp4",
+  "video_properties": {
+    "duration_s": 118.18333333333334,
+    "fps": 60.0,
+    "resolution": "1440x2560",
+    "total_frames": 7091,
+    "codec": "AV01"
+  },
+  "metrics": {
+    "total_frames": 7091,
+    "frames_with_detections": 3261,
+    "total_detections": 3269,
+    "unique_track_ids": 31,
+    "longest_track_id": 21,
+    "longest_track_detections": 630,
+    "class_distribution": {
+      "SMG": 837,
+      "Shotgun": 1857,
+      "Sniper Dataset": 453,
+      "knife": 7,
+      "Pistol": 115
+    },
+    "confidence_min": 0.2505171597003937,
+    "confidence_max": 0.864247739315033,
+    "confidence_mean": 0.4255451320890769
+  },
+  "track_details": {
+    "1": {
+      "total_detections": 1,
+      "first_frame": 6,
+      "last_frame": 6,
+      "span": 1,
+      "continuity_ratio": 1.0,
+      "gaps_count": 0,
+      "dominant_class": "SMG",
+      "all_classes": {
+        "SMG": 1
+      }
+    },
+    "2": {
+      "total_detections": 326,
+      "first_frame": 14,
+      "last_frame": 604,
+      "span": 591,
+      "continuity_ratio": 0.5516074450084603,
+      "gaps_count": 23,
+      "dominant_class": "SMG",
+      "all_classes": {
+        "SMG": 155,
+        "Shotgun": 90,
+        "Sniper Dataset": 74,
+        "knife": 7
+      }
+    },
+    "3": {
+      "total_detections": 7,
+      "first_frame": 653,
+      "last_frame": 660,
+      "span": 8,
+      "continuity_ratio": 0.875,
+      "gaps_count": 1,
+      "dominant_class": "Shotgun",
+      "all_classes": {
+        "Shotgun": 7
+      }
+    },
+    "4": {
+      "total_detections": 116,
+      "first_frame": 672,
+      "last_frame": 880,
+      "span": 209,
+      "continuity_ratio": 0.5550239234449761,
+      "gaps_count": 16,
+      "dominant_class": "SMG",
+      "all_classes": {
+        "SMG": 98,
+        "Sniper Dataset": 18
+      }
+    },
+    "5": {
+      "total_detections": 136,
+      "first_frame": 900,
+      "last_frame": 1040,
+      "span": 141,
+      "continuity_ratio": 0.9645390070921985,
+      "gaps_count": 5,
+      "dominant_class": "Shotgun",
+      "all_classes": {
+        "Shotgun": 133,
+        "SMG": 3
+      }
+    },
+    "6": {
+      "total_detections": 5,
+      "first_frame": 1053,
+      "last_frame": 1058,
+      "span": 6,
+      "continuity_ratio": 0.8333333333333334,
+      "gaps_count": 1,
+      "dominant_class": "Shotgun",
+      "all_classes": {
+        "Shotgun": 5
+      }
+    },
+    "7": {
+      "total_detections": 13,
+      "first_frame": 1344,
+      "last_frame": 1356,
+      "span": 13,
+      "continuity_ratio": 1.0,
+      "gaps_count": 0,
+      "dominant_class": "Shotgun",
+      "all_classes": {
+        "Shotgun": 13
+      }
+    },
+    "8": {
+      "total_detections": 21,
+      "first_frame": 1529,
+      "last_frame": 1554,
+      "span": 26,
+      "continuity_ratio": 0.8076923076923077,
+      "gaps_count": 3,
+      "dominant_class": "Sniper Dataset",
+      "all_classes": {
+        "Shotgun": 6,
+        "Sniper Dataset": 15
+      }
+    },
+    "9": {
+      "total_detections": 124,
+      "first_frame": 1626,
+      "last_frame": 1966,
+      "span": 341,
+      "continuity_ratio": 0.36363636363636365,
+      "gaps_count": 8,
+      "dominant_class": "SMG",
+      "all_classes": {
+        "SMG": 108,
+        "Sniper Dataset": 3,
+        "Shotgun": 13
+      }
+    },
+    "10": {
+      "total_detections": 14,
+      "first_frame": 1761,
+      "last_frame": 1829,
+      "span": 69,
+      "continuity_ratio": 0.2028985507246377,
+      "gaps_count": 2,
+      "dominant_class": "SMG",
+      "all_classes": {
+        "SMG": 14
+      }
+    },
+    "11": {
+      "total_detections": 11,
+      "first_frame": 2123,
+      "last_frame": 2176,
+      "span": 54,
+      "continuity_ratio": 0.2037037037037037,
+      "gaps_count": 2,
+      "dominant_class": "Sniper Dataset",
+      "all_classes": {
+        "Shotgun": 2,
+        "Sniper Dataset": 9
+      }
+    },
+    "12": {
+      "total_detections": 262,
+      "first_frame": 2219,
+      "last_frame": 2602,
+      "span": 384,
+      "continuity_ratio": 0.6822916666666666,
+      "gaps_count": 18,
+      "dominant_class": "Shotgun",
+      "all_classes": {
+        "Shotgun": 194,
+        "SMG": 64,
+        "Sniper Dataset": 4
+      }
+    },
+    "13": {
+      "total_detections": 13,
+      "first_frame": 2366,
+      "last_frame": 2392,
+      "span": 27,
+      "continuity_ratio": 0.48148148148148145,
+      "gaps_count": 3,
+      "dominant_class": "SMG",
+      "all_classes": {
+        "SMG": 8,
+        "Shotgun": 5
+      }
+    },
+    "14": {
+      "total_detections": 16,
+      "first_frame": 2432,
+      "last_frame": 2447,
+      "span": 16,
+      "continuity_ratio": 1.0,
+      "gaps_count": 0,
+      "dominant_class": "Sniper Dataset",
+      "all_classes": {
+        "Sniper Dataset": 16
+      }
+    },
+    "15": {
+      "total_detections": 68,
+      "first_frame": 2647,
+      "last_frame": 2729,
+      "span": 83,
+      "continuity_ratio": 0.8192771084337349,
+      "gaps_count": 4,
+      "dominant_class": "SMG",
+      "all_classes": {
+        "SMG": 68
+      }
+    },
+    "16": {
+      "total_detections": 97,
+      "first_frame": 2731,
+      "last_frame": 2840,
+      "span": 110,
+      "continuity_ratio": 0.8818181818181818,
+      "gaps_count": 4,
+      "dominant_class": "Sniper Dataset",
+      "all_classes": {
+        "Sniper Dataset": 75,
+        "Shotgun": 22
+      }
+    },
+    "17": {
+      "total_detections": 178,
+      "first_frame": 2862,
+      "last_frame": 3171,
+      "span": 310,
+      "continuity_ratio": 0.5741935483870968,
+      "gaps_count": 11,
+      "dominant_class": "SMG",
+      "all_classes": {
+        "SMG": 119,
+        "Shotgun": 4,
+        "Sniper Dataset": 55
+      }
+    },
+    "18": {
+      "total_detections": 16,
+      "first_frame": 3187,
+      "last_frame": 3230,
+      "span": 44,
+      "continuity_ratio": 0.36363636363636365,
+      "gaps_count": 3,
+      "dominant_class": "SMG",
+      "all_classes": {
+        "SMG": 11,
+        "Shotgun": 5
+      }
+    },
+    "19": {
+      "total_detections": 13,
+      "first_frame": 3242,
+      "last_frame": 3254,
+      "span": 13,
+      "continuity_ratio": 1.0,
+      "gaps_count": 0,
+      "dominant_class": "Shotgun",
+      "all_classes": {
+        "Shotgun": 13
+      }
+    },
+    "20": {
+      "total_detections": 55,
+      "first_frame": 3270,
+      "last_frame": 3383,
+      "span": 114,
+      "continuity_ratio": 0.4824561403508772,
+      "gaps_count": 4,
+      "dominant_class": "Shotgun",
+      "all_classes": {
+        "Shotgun": 55
+      }
+    },
+    "21": {
+      "total_detections": 630,
+      "first_frame": 3406,
+      "last_frame": 4726,
+      "span": 1321,
+      "continuity_ratio": 0.4769114307342922,
+      "gaps_count": 33,
+      "dominant_class": "Shotgun",
+      "all_classes": {
+        "Sniper Dataset": 9,
+        "Shotgun": 502,
+        "SMG": 4,
+        "Pistol": 115
+      }
+    },
+    "22": {
+      "total_detections": 171,
+      "first_frame": 4779,
+      "last_frame": 5135,
+      "span": 357,
+      "continuity_ratio": 0.4789915966386555,
+      "gaps_count": 6,
+      "dominant_class": "Shotgun",
+      "all_classes": {
+        "Shotgun": 135,
+        "Sniper Dataset": 26,
+        "SMG": 10
+      }
+    },
+    "23": {
+      "total_detections": 119,
+      "first_frame": 5175,
+      "last_frame": 5307,
+      "span": 133,
+      "continuity_ratio": 0.8947368421052632,
+      "gaps_count": 3,
+      "dominant_class": "Shotgun",
+      "all_classes": {
+        "Shotgun": 115,
+        "Sniper Dataset": 4
+      }
+    },
+    "24": {
+      "total_detections": 183,
+      "first_frame": 5312,
+      "last_frame": 5604,
+      "span": 293,
+      "continuity_ratio": 0.6245733788395904,
+      "gaps_count": 9,
+      "dominant_class": "Shotgun",
+      "all_classes": {
+        "SMG": 85,
+        "Shotgun": 98
+      }
+    },
+    "25": {
+      "total_detections": 16,
+      "first_frame": 5606,
+      "last_frame": 5631,
+      "span": 26,
+      "continuity_ratio": 0.6153846153846154,
+      "gaps_count": 3,
+      "dominant_class": "SMG",
+      "all_classes": {
+        "SMG": 16
+      }
+    },
+    "26": {
+      "total_detections": 253,
+      "first_frame": 5720,
+      "last_frame": 6084,
+      "span": 365,
+      "continuity_ratio": 0.6931506849315069,
+      "gaps_count": 17,
+      "dominant_class": "Shotgun",
+      "all_classes": {
+        "Shotgun": 148,
+        "Sniper Dataset": 101,
+        "SMG": 4
+      }
+    },
+    "27": {
+      "total_detections": 2,
+      "first_frame": 6242,
+      "last_frame": 6243,
+      "span": 2,
+      "continuity_ratio": 1.0,
+      "gaps_count": 0,
+      "dominant_class": "Shotgun",
+      "all_classes": {
+        "Shotgun": 2
+      }
+    },
+    "28": {
+      "total_detections": 210,
+      "first_frame": 6267,
+      "last_frame": 6505,
+      "span": 239,
+      "continuity_ratio": 0.8786610878661087,
+      "gaps_count": 11,
+      "dominant_class": "Shotgun",
+      "all_classes": {
+        "Sniper Dataset": 25,
+        "SMG": 2,
+        "Shotgun": 183
+      }
+    },
+    "29": {
+      "total_detections": 9,
+      "first_frame": 6551,
+      "last_frame": 6560,
+      "span": 10,
+      "continuity_ratio": 0.9,
+      "gaps_count": 1,
+      "dominant_class": "SMG",
+      "all_classes": {
+        "SMG": 9
+      }
+    },
+    "30": {
+      "total_detections": 165,
+      "first_frame": 6606,
+      "last_frame": 7090,
+      "span": 485,
+      "continuity_ratio": 0.3402061855670103,
+      "gaps_count": 20,
+      "dominant_class": "Shotgun",
+      "all_classes": {
+        "SMG": 58,
+        "Shotgun": 107
+      }
+    },
+    "31": {
+      "total_detections": 19,
+      "first_frame": 6686,
+      "last_frame": 6704,
+      "span": 19,
+      "continuity_ratio": 1.0,
+      "gaps_count": 0,
+      "dominant_class": "Sniper Dataset",
+      "all_classes": {
+        "Sniper Dataset": 19
+      }
+    }
+  }
+}

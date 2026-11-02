@@ -1,0 +1,127 @@
+{
+  "report_title": "S.W.O.R.D Phase 2 Temporal Trajectory Preprocessing Report",
+  "description": "Segmentation of tracked weapon trajectories into continuous 1-frame observation segments with gap boundary tracking and diagnostic flagging.",
+  "note": "Strictly non-interpolated, raw observations preserved. No velocity or acceleration calculations applied.",
+  "overall_summary": {
+    "total_videos": 3,
+    "total_tracks": 61,
+    "total_observations": 4945,
+    "total_continuous_segments": 381,
+    "valid_motion_segments": 175,
+    "short_segments": 206,
+    "total_gap_transitions": 320,
+    "total_large_step_flags": 1,
+    "total_possible_jitter_flags": 13,
+    "gap_statistics": {
+      "min_gap": 2,
+      "max_gap": 501,
+      "mean_gap": 12.7094,
+      "median_gap": 3.0
+    }
+  },
+  "per_video_summary": {
+    "sample_video_01.mp4": {
+      "video_name": "sample_video_01.mp4",
+      "total_tracks": 13,
+      "total_observations": 648,
+      "total_continuous_segments": 42,
+      "valid_motion_segments": 24,
+      "short_segments": 18,
+      "gap_transitions": 29,
+      "large_step_flags": 0,
+      "possible_jitter_flags": 0,
+      "gap_statistics": {
+        "min_gap": 2,
+        "max_gap": 212,
+        "mean_gap": 12.3448,
+        "median_gap": 3.0
+      }
+    },
+    "sample_video_02.mp4": {
+      "video_name": "sample_video_02.mp4",
+      "total_tracks": 17,
+      "total_observations": 1028,
+      "total_continuous_segments": 97,
+      "valid_motion_segments": 31,
+      "short_segments": 66,
+      "gap_transitions": 80,
+      "large_step_flags": 0,
+      "possible_jitter_flags": 4,
+      "gap_statistics": {
+        "min_gap": 2,
+        "max_gap": 501,
+        "mean_gap": 11.9625,
+        "median_gap": 3.0
+      }
+    },
+    "sample_video_03.mp4": {
+      "video_name": "sample_video_03.mp4",
+      "total_tracks": 31,
+      "total_observations": 3269,
+      "total_continuous_segments": 242,
+      "valid_motion_segments": 120,
+      "short_segments": 122,
+      "gap_transitions": 211,
+      "large_step_flags": 1,
+      "possible_jitter_flags": 9,
+      "gap_statistics": {
+        "min_gap": 2,
+        "max_gap": 447,
+        "mean_gap": 13.0427,
+        "median_gap": 3.0
+      }
+    }
+  },
+  "validation_results": {
+    "check_1_observations_appear_once": {
+      "status": "PASS",
+      "description": "Every original observation appears exactly once without duplication in trajectory_segments.csv.",
+      "unique_keys_count": 4945,
+      "total_rows": 4945
+    },
+    "check_2_row_count_equals_4945": {
+      "status": "PASS",
+      "description": "Number of rows in trajectory_segments.csv exactly equals 4,945.",
+      "row_count": 4945
+    },
+    "check_3_center_coordinates_unchanged": {
+      "status": "PASS",
+      "description": "Center coordinates (x, y) exactly match original center_x and center_y with zero modification."
+    },
+    "check_4_frame_ids_unchanged": {
+      "status": "PASS",
+      "description": "All frame IDs strictly match original input tracking frames without alteration."
+    },
+    "check_5_track_ids_unchanged": {
+      "status": "PASS",
+      "description": "All Track IDs strictly match original input Track IDs without alteration."
+    },
+    "check_6_no_synthetic_observations": {
+      "status": "PASS",
+      "description": "Zero synthetic, imputed, or interpolated observations added."
+    },
+    "check_7_monotonically_increasing_frames": {
+      "status": "PASS",
+      "description": "Every continuous segment has strictly monotonically increasing frame IDs."
+    },
+    "check_8_only_consecutive_frame_ids": {
+      "status": "PASS",
+      "description": "Every continuous segment strictly contains consecutive frame IDs (frame_gap == 1)."
+    },
+    "check_9_segment_boundaries_correspond_to_gap_gt_1": {
+      "status": "PASS",
+      "description": "All recorded segment boundaries correspond to real tracking gaps where frame_gap > 1.",
+      "total_gaps_verified": 320
+    },
+    "check_10_no_nan_or_infinite_values": {
+      "status": "PASS",
+      "description": "Zero NaN or infinite values present across preprocessed observations, segment summaries, and gap summaries."
+    },
+    "check_11_sum_observations_equals_4945": {
+      "status": "PASS",
+      "description": "The sum of observations across all segment summaries exactly equals 4,945.",
+      "sum_observations": 4945
+    },
+    "overall_validation_status": "ALL CHECKS PASSED"
+  }
+}

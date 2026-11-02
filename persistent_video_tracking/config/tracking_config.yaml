@@ -1,0 +1,81 @@
+# ==============================================================================
+# S.W.O.R.D. Phase 2 — Generic Tracking Architecture Configuration
+# ==============================================================================
+# Centralized configuration for arbitrary video sources, multi-model ensemble,
+# dual-stream ByteTrack, kinematics, zone analytics, and spatio-temporal association.
+# ==============================================================================
+
+# Model Paths (relative to project root or absolute)
+models:
+  weapon_s: "weights/yolo26s_best.pt"
+  weapon_m: "weights/yolo26m_best.pt"
+  person: "yolov8n.pt"
+  device: "cpu"  # "cpu", "cuda", or null for auto-detect
+
+# Detection Parameters
+detection:
+  img_size: 640
+  weapon:
+    conf_threshold: 0.25
+    iou_threshold: 0.55       # IoU threshold for WBF box clustering
+    wbf_weights: [1.0, 1.1]   # YOLO26s (1.0), YOLO26m (1.1)
+    fusion_mode: "wbf"        # "wbf" or "nms"
+    conf_type: "avg"          # "avg" or "max"
+  person:
+    conf_threshold: 0.35      # Person detection confidence threshold
+    coco_person_class_id: 0
+
+# ByteTrack Parameters (Separate tracker instances for weapon & person)
+tracking:
+  weapon:
+    track_activation_threshold: 0.25
+    lost_track_buffer: 30
+    minimum_matching_threshold: 0.8
+  person:
+    track_activation_threshold: 0.30
+    lost_track_buffer: 30
+    minimum_matching_threshold: 0.75
+
+# Analytics & Kinematics Configuration
+analytics:
+  # Stationary threshold in pixel speed (px/s). Below this, direction is 'STATIONARY'
+  stationary_velocity_threshold_px_s: 15.0
+  # Minimum observations in continuous segment for valid segment classification
+  min_segment_length: 5
+  # Trajectory continuity requirement: split segment if frame_gap > gap_threshold
+  max_continuous_frame_gap: 1
+  # Localized dwell radius (pixels) for stationary cluster analysis
+  dwell_radius_px: 50.0
+  # Minimum dwell time (seconds) to log a sustained dwell episode
+  minimum_dwell_seconds: 1.0
+
+# Person <-> Weapon Spatio-Temporal Association Parameters
+association:
+  # Intersection over Weapon (IoW = InterArea / WeaponArea) threshold
+  iow_threshold: 0.15
+  # Proximity threshold: maximum center distance (pixels) if IoW is low
+  proximity_distance_px: 120.0
+  # Temporal persistence window (frames) to prevent frame-to-frame flickering
+  temporal_window_frames: 5
+  # Minimum association confidence score to declare ASSOCIATED
+  min_association_score: 0.40
+
+# Configurable Zones (Polygons in pixel coordinates or normalized [0..1] coordinates)
+# If empty or not defined for a video, zone analytics gracefully bypasses.
+# Coordinates format: [[x1, y1], [x2, y2], [x3, y3], ...]
+# For generic CCTV, user/operator can configure per-camera zones here.
+zones:
+  # Example default zones (can be overridden or left empty)
+  # When normalized: false, coordinates are interpreted in pixel space
+  normalized: false
+  definitions: {}
+
+# Output Directory
+output:
+  base_dir: "persistent_video_tracking/outputs"
+  save_annotated_video: true
+  save_kinematics_csv: true
+  save_trajectory_csv: true
+  save_zone_events_csv: true
+  save_associations_csv: true
+  save_metadata_json: true

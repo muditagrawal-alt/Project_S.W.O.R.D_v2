@@ -1,0 +1,247 @@
+{
+  "video_name": "sample_video_02.mp4",
+  "video_properties": {
+    "duration_s": 76.396,
+    "fps": 30.001570762867164,
+    "resolution": "1080x1920",
+    "total_frames": 2292,
+    "codec": "VP90"
+  },
+  "metrics": {
+    "total_frames": 2292,
+    "frames_with_detections": 757,
+    "total_detections": 1028,
+    "unique_track_ids": 17,
+    "longest_track_id": 1,
+    "longest_track_detections": 261,
+    "class_distribution": {
+      "grenade": 411,
+      "Sniper Dataset": 245,
+      "Shotgun": 107,
+      "SMG": 75,
+      "rocket launcher": 81,
+      "knife": 109
+    },
+    "confidence_min": 0.250104159116745,
+    "confidence_max": 0.9142594337463379,
+    "confidence_mean": 0.5608516560454313
+  },
+  "track_details": {
+    "1": {
+      "total_detections": 261,
+      "first_frame": 0,
+      "last_frame": 263,
+      "span": 264,
+      "continuity_ratio": 0.9886363636363636,
+      "gaps_count": 1,
+      "dominant_class": "grenade",
+      "all_classes": {
+        "grenade": 261
+      }
+    },
+    "2": {
+      "total_detections": 226,
+      "first_frame": 0,
+      "last_frame": 229,
+      "span": 230,
+      "continuity_ratio": 0.9826086956521739,
+      "gaps_count": 3,
+      "dominant_class": "Sniper Dataset",
+      "all_classes": {
+        "Sniper Dataset": 226
+      }
+    },
+    "3": {
+      "total_detections": 3,
+      "first_frame": 43,
+      "last_frame": 45,
+      "span": 3,
+      "continuity_ratio": 1.0,
+      "gaps_count": 0,
+      "dominant_class": "Sniper Dataset",
+      "all_classes": {
+        "Sniper Dataset": 3
+      }
+    },
+    "4": {
+      "total_detections": 4,
+      "first_frame": 231,
+      "last_frame": 234,
+      "span": 4,
+      "continuity_ratio": 1.0,
+      "gaps_count": 0,
+      "dominant_class": "Sniper Dataset",
+      "all_classes": {
+        "Sniper Dataset": 4
+      }
+    },
+    "5": {
+      "total_detections": 73,
+      "first_frame": 283,
+      "last_frame": 382,
+      "span": 100,
+      "continuity_ratio": 0.73,
+      "gaps_count": 7,
+      "dominant_class": "Shotgun",
+      "all_classes": {
+        "grenade": 20,
+        "Shotgun": 53
+      }
+    },
+    "6": {
+      "total_detections": 1,
+      "first_frame": 311,
+      "last_frame": 311,
+      "span": 1,
+      "continuity_ratio": 1.0,
+      "gaps_count": 0,
+      "dominant_class": "Shotgun",
+      "all_classes": {
+        "Shotgun": 1
+      }
+    },
+    "7": {
+      "total_detections": 69,
+      "first_frame": 340,
+      "last_frame": 450,
+      "span": 111,
+      "continuity_ratio": 0.6216216216216216,
+      "gaps_count": 18,
+      "dominant_class": "SMG",
+      "all_classes": {
+        "SMG": 37,
+        "Shotgun": 30,
+        "rocket launcher": 2
+      }
+    },
+    "8": {
+      "total_detections": 15,
+      "first_frame": 464,
+      "last_frame": 495,
+      "span": 32,
+      "continuity_ratio": 0.46875,
+      "gaps_count": 7,
+      "dominant_class": "SMG",
+      "all_classes": {
+        "SMG": 8,
+        "Sniper Dataset": 4,
+        "Shotgun": 3
+      }
+    },
+    "9": {
+      "total_detections": 86,
+      "first_frame": 523,
+      "last_frame": 1170,
+      "span": 648,
+      "continuity_ratio": 0.13271604938271606,
+      "gaps_count": 18,
+      "dominant_class": "knife",
+      "all_classes": {
+        "SMG": 30,
+        "Shotgun": 17,
+        "knife": 39
+      }
+    },
+    "10": {
+      "total_detections": 56,
+      "first_frame": 1231,
+      "last_frame": 1293,
+      "span": 63,
+      "continuity_ratio": 0.8888888888888888,
+      "gaps_count": 6,
+      "dominant_class": "rocket launcher",
+      "all_classes": {
+        "rocket launcher": 55,
+        "grenade": 1
+      }
+    },
+    "11": {
+      "total_detections": 8,
+      "first_frame": 1281,
+      "last_frame": 1293,
+      "span": 13,
+      "continuity_ratio": 0.6153846153846154,
+      "gaps_count": 1,
+      "dominant_class": "Sniper Dataset",
+      "all_classes": {
+        "Sniper Dataset": 8
+      }
+    },
+    "12": {
+      "total_detections": 29,
+      "first_frame": 1345,
+      "last_frame": 1384,
+      "span": 40,
+      "continuity_ratio": 0.725,
+      "gaps_count": 3,
+      "dominant_class": "grenade",
+      "all_classes": {
+        "grenade": 28,
+        "Shotgun": 1
+      }
+    },
+    "13": {
+      "total_detections": 1,
+      "first_frame": 1384,
+      "last_frame": 1384,
+      "span": 1,
+      "continuity_ratio": 1.0,
+      "gaps_count": 0,
+      "dominant_class": "grenade",
+      "all_classes": {
+        "grenade": 1
+      }
+    },
+    "14": {
+      "total_detections": 121,
+      "first_frame": 1589,
+      "last_frame": 1853,
+      "span": 265,
+      "continuity_ratio": 0.45660377358490567,
+      "gaps_count": 3,
+      "dominant_class": "grenade",
+      "all_classes": {
+        "grenade": 96,
+        "rocket launcher": 24,
+        "knife": 1
+      }
+    },
+    "15": {
+      "total_detections": 2,
+      "first_frame": 1722,
+      "last_frame": 1723,
+      "span": 2,
+      "continuity_ratio": 1.0,
+      "gaps_count": 0,
+      "dominant_class": "grenade",
+      "all_classes": {
+        "grenade": 2
+      }
+    },
+    "16": {
+      "total_detections": 2,
+      "first_frame": 1785,
+      "last_frame": 1786,
+      "span": 2,
+      "continuity_ratio": 1.0,
+      "gaps_count": 0,
+      "dominant_class": "grenade",
+      "all_classes": {
+        "grenade": 2
+      }
+    },
+    "17": {
+      "total_detections": 71,
+      "first_frame": 1933,
+      "last_frame": 2058,
+      "span": 126,
+      "continuity_ratio": 0.5634920634920635,
+      "gaps_count": 13,
+      "dominant_class": "knife",
+      "all_classes": {
+        "knife": 69,
+        "Shotgun": 2
+      }
+    }
+  }
+}

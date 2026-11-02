@@ -1,0 +1,182 @@
+{
+  "report_title": "S.W.O.R.D Phase 2 Pixel-Space Velocity Analysis Report",
+  "description": "Descriptive kinematic analysis of instantaneous pixel velocities strictly inside preprocessed continuous 1-frame segments.",
+  "units": "pixels/second (px/s)",
+  "coordinate_convention": "+X = right, +Y = downward (image coordinates)",
+  "note": "Descriptive kinematic feature only. No real-world m/s, calibration, or threat scoring applied.",
+  "overall_statistics": {
+    "total_valid_observations": 4372,
+    "total_valid_segments": 175,
+    "total_short_segments": 206,
+    "mean_velocity_px_s": 557.88,
+    "median_velocity_px_s": 275.8,
+    "std_velocity_px_s": 926.2,
+    "min_velocity_px_s": 0.85,
+    "max_velocity_px_s": 19287.14,
+    "p25_velocity_px_s": 101.67,
+    "p75_velocity_px_s": 630.56,
+    "p95_velocity_px_s": 1999.26
+  },
+  "per_video_statistics": {
+    "sample_video_01.mp4": {
+      "fps": 24.0,
+      "total_segments": 42,
+      "valid_motion_segments": 24,
+      "insufficient_depth_segments": 18,
+      "velocity_observations_valid": 583,
+      "velocity_statistics_px_s": {
+        "mean": 269.7,
+        "median": 193.49,
+        "std": 288.4,
+        "min": 6.48,
+        "max": 3271.16,
+        "p25": 94.65,
+        "p75": 363.86,
+        "p95": 723.53
+      }
+    },
+    "sample_video_02.mp4": {
+      "fps": 30.001570762867164,
+      "total_segments": 97,
+      "valid_motion_segments": 31,
+      "insufficient_depth_segments": 66,
+      "velocity_observations_valid": 862,
+      "velocity_statistics_px_s": {
+        "mean": 396.43,
+        "median": 163.47,
+        "std": 615.37,
+        "min": 2.47,
+        "max": 4871.86,
+        "p25": 35.91,
+        "p75": 505.61,
+        "p95": 1531.02
+      }
+    },
+    "sample_video_03.mp4": {
+      "fps": 60.0,
+      "total_segments": 242,
+      "valid_motion_segments": 120,
+      "insufficient_depth_segments": 122,
+      "velocity_observations_valid": 2927,
+      "velocity_statistics_px_s": {
+        "mean": 662.83,
+        "median": 336.45,
+        "std": 1057.37,
+        "min": 0.85,
+        "max": 19287.14,
+        "p25": 134.07,
+        "p75": 772.7,
+        "p95": 2258.98
+      }
+    }
+  },
+  "highest_velocity_observation": {
+    "video_name": "sample_video_03.mp4",
+    "track_id": 19,
+    "segment_id": "sample_video_03_track_19_segment_001",
+    "from_frame": 3253,
+    "to_frame": 3254,
+    "velocity_px_s": 19287.1378,
+    "vx_px_s": -2223.0,
+    "vy_px_s": -19158.6,
+    "distance_pixels": 321.4523,
+    "elapsed_time_seconds": 0.016667,
+    "flag": "LARGE_STEP / POSSIBLE_BBOX_INSTABILITY",
+    "diagnosis": "Attributable to bounding box vertical scale collapse at image boundary on 1440x2560 frame, producing an apparent 321.45 px center displacement across 1 frame (0.0167 s)."
+  },
+  "low_velocity_summary": {
+    "threshold_px_s": 10.0,
+    "count_below_threshold": 103,
+    "percentage_of_valid_observations": 2.36,
+    "description": "Reflects stationary or slowly maneuvering weapons with minimal detector center displacement."
+  },
+  "flagged_observations_summary": {
+    "large_step_observations_count": 1,
+    "jitter_segment_observations_count": 491
+  },
+  "validation_results": {
+    "check_1_same_continuous_segment_only": {
+      "status": "PASS",
+      "description": "Every velocity observation is strictly calculated from consecutive observations within the same segment."
+    },
+    "check_2_no_velocity_crosses_gap": {
+      "status": "PASS",
+      "description": "Zero velocity calculations span across tracking gap transitions (frame_gap strictly == 1)."
+    },
+    "check_3_n_minus_1_consistency": {
+      "status": "PASS",
+      "description": "Every segment with N observations strictly produces exactly N - 1 velocity measurements.",
+      "total_velocity_observations": 4564,
+      "expected_total_steps": 4564
+    },
+    "check_4_no_nan_or_infinite_velocities": {
+      "status": "PASS",
+      "description": "Zero NaN or infinite values detected across all velocity observations and summary files."
+    },
+    "check_5_manual_arithmetic_verification": {
+      "status": "PASS",
+      "description": "Independent step-by-step arithmetic verification matches for 3 distinct video sample segments.",
+      "samples_verified": {
+        "sample_1_video_01": {
+          "segment_id": "sample_video_01_track_02_segment_001",
+          "frames": [
+            49,
+            50
+          ],
+          "formula_v": 439.893,
+          "recorded_v": 439.893,
+          "match": true
+        },
+        "sample_2_video_02": {
+          "segment_id": "sample_video_02_track_01_segment_001",
+          "frames": [
+            0,
+            1
+          ],
+          "formula_v": 27.3212,
+          "recorded_v": 27.3212,
+          "match": true
+        },
+        "sample_3_video_03": {
+          "segment_id": "sample_video_03_track_19_segment_001",
+          "frames": [
+            3253,
+            3254
+          ],
+          "formula_v": 19287.1378,
+          "recorded_v": 19287.1378,
+          "match": true
+        }
+      }
+    },
+    "check_6_fps_verified": {
+      "status": "PASS",
+      "description": "Video FPS values strictly queried and verified: Vid 1 = 24.0, Vid 2 = 30.0016, Vid 3 = 60.0.",
+      "fps_mapping": {
+        "sample_video_01.mp4": 24.0,
+        "sample_video_02.mp4": 30.001570762867164,
+        "sample_video_03.mp4": 60.0
+      }
+    },
+    "check_7_units_verified": {
+      "status": "PASS",
+      "description": "Units are strictly pixels per second (px/s) in image coordinate space (+X right, +Y down)."
+    },
+    "check_8_video_3_track_19_flagged": {
+      "status": "PASS",
+      "description": "Video 3 Track #19 outlier (frames 3253 -> 3254, jump = 321.45 px @ 60 FPS) is explicitly preserved and flagged.",
+      "flag_recorded": "LARGE_STEP / POSSIBLE_BBOX_INSTABILITY"
+    },
+    "check_9_no_original_observations_modified": {
+      "status": "PASS",
+      "description": "All 4,945 original observations preserved with unmodified coordinates and frame numbers."
+    },
+    "check_10_short_segments_not_deleted": {
+      "status": "PASS",
+      "description": "All 206 short segments are retained and classified as INSUFFICIENT_TEMPORAL_DEPTH without deletion.",
+      "total_segments_in_summary": 381,
+      "expected_segments": 381
+    },
+    "overall_validation_status": "ALL CHECKS PASSED"
+  }
+}

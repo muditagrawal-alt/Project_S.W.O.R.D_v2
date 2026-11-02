@@ -1,0 +1,958 @@
+{
+    "video_name": "Machine_Gun_002.mp4",
+    "category": "Machine_Gun",
+    "frames": [
+        {
+            "frame_id": 1,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        0,
+                        190,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 2,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        6,
+                        199,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 3,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        13,
+                        209,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 4,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        19,
+                        218,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 5,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        26,
+                        225,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 6,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        32,
+                        232,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 9,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        52,
+                        239,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 10,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        58,
+                        238,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 11,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        65,
+                        235,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 12,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        71,
+                        230,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 13,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        78,
+                        223,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 14,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        84,
+                        215,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 15,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        91,
+                        206,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 16,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        98,
+                        197,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 17,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        104,
+                        187,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 18,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        111,
+                        177,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 19,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        117,
+                        167,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 20,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        124,
+                        159,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 21,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        130,
+                        152,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 22,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        137,
+                        146,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 23,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        143,
+                        142,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 24,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        150,
+                        140,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 25,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        156,
+                        140,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 26,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        163,
+                        142,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 28,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        176,
+                        151,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 29,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        182,
+                        158,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 30,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        189,
+                        166,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 31,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        196,
+                        176,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 32,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        202,
+                        185,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 33,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        209,
+                        195,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 34,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        215,
+                        205,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 35,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        222,
+                        214,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 36,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        228,
+                        222,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 37,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        235,
+                        229,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 38,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        241,
+                        234,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 39,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        248,
+                        238,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 40,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        254,
+                        239,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 41,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        261,
+                        239,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 44,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        280,
+                        226,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 45,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        287,
+                        219,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 46,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        294,
+                        210,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 47,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        300,
+                        201,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 48,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        307,
+                        191,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 49,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        313,
+                        181,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 50,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        320,
+                        171,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 51,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        326,
+                        162,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 52,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        333,
+                        155,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 54,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        346,
+                        143,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 55,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        352,
+                        140,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 56,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        359,
+                        140,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 57,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        365,
+                        141,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 58,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        372,
+                        144,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 59,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        378,
+                        148,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 60,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        385,
+                        155,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 61,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        392,
+                        163,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 62,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        398,
+                        172,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 63,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        405,
+                        181,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 64,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        411,
+                        191,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 65,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        418,
+                        201,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 66,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        424,
+                        211,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 67,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        431,
+                        219,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 68,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        437,
+                        227,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 69,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        444,
+                        232,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 71,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        457,
+                        239,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 72,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        463,
+                        239,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 73,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        470,
+                        238,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 74,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        476,
+                        234,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 75,
+            "annotations": [
+                {
+                    "class": "Machine_Gun",
+                    "bbox": [
+                        483,
+                        229,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        }
+    ]
+}

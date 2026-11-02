@@ -1,0 +1,24 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Output runs (keep directory structure, ignore generated run folders)
+outputs/*/
+!outputs/README.md
+
+# OS and IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Large model weights (externally managed)
+*.pt
+*.onnx
+*.engine
+
+# Video files generated during tests
+*.mp4
+*.avi
+!examples/*.mp4

@@ -1,0 +1,762 @@
+{
+    "video_name": "Handgun_001.mp4",
+    "category": "Handgun",
+    "frames": [
+        {
+            "frame_id": 1,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        0,
+                        190,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 2,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        8,
+                        199,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 4,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        24,
+                        218,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 5,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        32,
+                        225,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 6,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        40,
+                        232,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 7,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        49,
+                        236,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 8,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        57,
+                        239,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 9,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        65,
+                        239,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 10,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        73,
+                        238,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 11,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        81,
+                        235,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 13,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        98,
+                        223,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 14,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        106,
+                        215,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 15,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        114,
+                        206,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 16,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        122,
+                        197,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 17,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        130,
+                        187,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 18,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        138,
+                        177,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 19,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        147,
+                        167,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 20,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        155,
+                        159,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 21,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        163,
+                        152,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 22,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        171,
+                        146,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 23,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        179,
+                        142,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 24,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        187,
+                        140,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 25,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        196,
+                        140,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 26,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        204,
+                        142,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 28,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        220,
+                        151,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 29,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        228,
+                        158,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 30,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        236,
+                        166,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 31,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        245,
+                        176,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 33,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        261,
+                        195,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 34,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        269,
+                        205,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 35,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        277,
+                        214,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 36,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        285,
+                        222,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 37,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        294,
+                        229,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 38,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        302,
+                        234,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 39,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        310,
+                        238,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 40,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        318,
+                        239,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 41,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        326,
+                        239,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 43,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        343,
+                        232,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 44,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        351,
+                        226,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 45,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        359,
+                        219,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 46,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        367,
+                        210,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 47,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        375,
+                        201,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 48,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        383,
+                        191,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 49,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        392,
+                        181,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 50,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        400,
+                        171,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 51,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        408,
+                        162,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 53,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        424,
+                        148,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 54,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        432,
+                        143,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 55,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        441,
+                        140,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 56,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        449,
+                        140,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 57,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        457,
+                        141,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 58,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        465,
+                        144,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 59,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        473,
+                        148,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "frame_id": 60,
+            "annotations": [
+                {
+                    "class": "Handgun",
+                    "bbox": [
+                        481,
+                        155,
+                        150,
+                        100
+                    ]
+                }
+            ]
+        }
+    ]
+}

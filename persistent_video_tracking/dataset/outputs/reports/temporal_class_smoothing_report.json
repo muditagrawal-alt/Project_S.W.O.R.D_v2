@@ -1,0 +1,968 @@
+{
+  "sample_video_01_tracking.csv": {
+    "input_csv": "phase2\\dataset\\outputs\\tracking_results\\sample_video_01_tracking.csv",
+    "output_csv": "phase2\\dataset\\outputs\\tracking_results\\sample_video_01_tracking_smoothed.csv",
+    "window_size": 20,
+    "total_detections": 648,
+    "total_tracks": 13,
+    "total_raw_class_switches": 63,
+    "total_smoothed_class_switches": 14,
+    "tracks": {
+      "1": {
+        "total_detections": 7,
+        "raw_class_distribution": {
+          "SMG": 7
+        },
+        "smoothed_class_distribution": {
+          "SMG": 7
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "SMG",
+        "dominant_smoothed_class": "SMG"
+      },
+      "2": {
+        "total_detections": 6,
+        "raw_class_distribution": {
+          "Sniper Dataset": 6
+        },
+        "smoothed_class_distribution": {
+          "Sniper Dataset": 6
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "Sniper Dataset",
+        "dominant_smoothed_class": "Sniper Dataset"
+      },
+      "3": {
+        "total_detections": 38,
+        "raw_class_distribution": {
+          "Sniper Dataset": 38
+        },
+        "smoothed_class_distribution": {
+          "Sniper Dataset": 38
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "Sniper Dataset",
+        "dominant_smoothed_class": "Sniper Dataset"
+      },
+      "4": {
+        "total_detections": 68,
+        "raw_class_distribution": {
+          "rocket launcher": 20,
+          "grenade": 13,
+          "SMG": 21,
+          "Sniper Dataset": 14
+        },
+        "smoothed_class_distribution": {
+          "rocket launcher": 31,
+          "grenade": 11,
+          "SMG": 26
+        },
+        "raw_class_switches": 26,
+        "smoothed_class_switches": 5,
+        "jitter_reduction_percent": 80.76923076923077,
+        "dominant_raw_class": "SMG",
+        "dominant_smoothed_class": "rocket launcher"
+      },
+      "5": {
+        "total_detections": 20,
+        "raw_class_distribution": {
+          "Sniper Dataset": 13,
+          "SMG": 7
+        },
+        "smoothed_class_distribution": {
+          "Sniper Dataset": 20
+        },
+        "raw_class_switches": 10,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 100.0,
+        "dominant_raw_class": "Sniper Dataset",
+        "dominant_smoothed_class": "Sniper Dataset"
+      },
+      "6": {
+        "total_detections": 24,
+        "raw_class_distribution": {
+          "SMG": 12,
+          "Sniper Dataset": 12
+        },
+        "smoothed_class_distribution": {
+          "SMG": 13,
+          "Sniper Dataset": 11
+        },
+        "raw_class_switches": 5,
+        "smoothed_class_switches": 2,
+        "jitter_reduction_percent": 60.0,
+        "dominant_raw_class": "SMG",
+        "dominant_smoothed_class": "SMG"
+      },
+      "7": {
+        "total_detections": 19,
+        "raw_class_distribution": {
+          "Sniper Dataset": 19
+        },
+        "smoothed_class_distribution": {
+          "Sniper Dataset": 19
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "Sniper Dataset",
+        "dominant_smoothed_class": "Sniper Dataset"
+      },
+      "8": {
+        "total_detections": 70,
+        "raw_class_distribution": {
+          "SMG": 14,
+          "Sniper Dataset": 56
+        },
+        "smoothed_class_distribution": {
+          "SMG": 19,
+          "Sniper Dataset": 51
+        },
+        "raw_class_switches": 7,
+        "smoothed_class_switches": 3,
+        "jitter_reduction_percent": 57.14285714285714,
+        "dominant_raw_class": "Sniper Dataset",
+        "dominant_smoothed_class": "Sniper Dataset"
+      },
+      "9": {
+        "total_detections": 167,
+        "raw_class_distribution": {
+          "SMG": 95,
+          "Sniper Dataset": 69,
+          "Shotgun": 3
+        },
+        "smoothed_class_distribution": {
+          "SMG": 102,
+          "Sniper Dataset": 65
+        },
+        "raw_class_switches": 11,
+        "smoothed_class_switches": 4,
+        "jitter_reduction_percent": 63.63636363636363,
+        "dominant_raw_class": "SMG",
+        "dominant_smoothed_class": "SMG"
+      },
+      "10": {
+        "total_detections": 3,
+        "raw_class_distribution": {
+          "SMG": 3
+        },
+        "smoothed_class_distribution": {
+          "SMG": 3
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "SMG",
+        "dominant_smoothed_class": "SMG"
+      },
+      "11": {
+        "total_detections": 3,
+        "raw_class_distribution": {
+          "SMG": 3
+        },
+        "smoothed_class_distribution": {
+          "SMG": 3
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "SMG",
+        "dominant_smoothed_class": "SMG"
+      },
+      "12": {
+        "total_detections": 221,
+        "raw_class_distribution": {
+          "SMG": 215,
+          "Sniper Dataset": 6
+        },
+        "smoothed_class_distribution": {
+          "SMG": 221
+        },
+        "raw_class_switches": 4,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 100.0,
+        "dominant_raw_class": "SMG",
+        "dominant_smoothed_class": "SMG"
+      },
+      "13": {
+        "total_detections": 2,
+        "raw_class_distribution": {
+          "SMG": 2
+        },
+        "smoothed_class_distribution": {
+          "SMG": 2
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "SMG",
+        "dominant_smoothed_class": "SMG"
+      }
+    },
+    "overall_jitter_reduction_percent": 77.77777777777779
+  },
+  "sample_video_02_tracking.csv": {
+    "input_csv": "phase2\\dataset\\outputs\\tracking_results\\sample_video_02_tracking.csv",
+    "output_csv": "phase2\\dataset\\outputs\\tracking_results\\sample_video_02_tracking_smoothed.csv",
+    "window_size": 20,
+    "total_detections": 1028,
+    "total_tracks": 17,
+    "total_raw_class_switches": 37,
+    "total_smoothed_class_switches": 10,
+    "tracks": {
+      "1": {
+        "total_detections": 261,
+        "raw_class_distribution": {
+          "grenade": 261
+        },
+        "smoothed_class_distribution": {
+          "grenade": 261
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "grenade",
+        "dominant_smoothed_class": "grenade"
+      },
+      "2": {
+        "total_detections": 226,
+        "raw_class_distribution": {
+          "Sniper Dataset": 226
+        },
+        "smoothed_class_distribution": {
+          "Sniper Dataset": 226
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "Sniper Dataset",
+        "dominant_smoothed_class": "Sniper Dataset"
+      },
+      "3": {
+        "total_detections": 3,
+        "raw_class_distribution": {
+          "Sniper Dataset": 3
+        },
+        "smoothed_class_distribution": {
+          "Sniper Dataset": 3
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "Sniper Dataset",
+        "dominant_smoothed_class": "Sniper Dataset"
+      },
+      "4": {
+        "total_detections": 4,
+        "raw_class_distribution": {
+          "Sniper Dataset": 4
+        },
+        "smoothed_class_distribution": {
+          "Sniper Dataset": 4
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "Sniper Dataset",
+        "dominant_smoothed_class": "Sniper Dataset"
+      },
+      "5": {
+        "total_detections": 73,
+        "raw_class_distribution": {
+          "grenade": 20,
+          "Shotgun": 53
+        },
+        "smoothed_class_distribution": {
+          "grenade": 30,
+          "Shotgun": 43
+        },
+        "raw_class_switches": 1,
+        "smoothed_class_switches": 1,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "Shotgun",
+        "dominant_smoothed_class": "Shotgun"
+      },
+      "6": {
+        "total_detections": 1,
+        "raw_class_distribution": {
+          "Shotgun": 1
+        },
+        "smoothed_class_distribution": {
+          "Shotgun": 1
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "Shotgun",
+        "dominant_smoothed_class": "Shotgun"
+      },
+      "7": {
+        "total_detections": 69,
+        "raw_class_distribution": {
+          "SMG": 37,
+          "Shotgun": 30,
+          "rocket launcher": 2
+        },
+        "smoothed_class_distribution": {
+          "SMG": 43,
+          "Shotgun": 26
+        },
+        "raw_class_switches": 15,
+        "smoothed_class_switches": 5,
+        "jitter_reduction_percent": 66.66666666666666,
+        "dominant_raw_class": "SMG",
+        "dominant_smoothed_class": "SMG"
+      },
+      "8": {
+        "total_detections": 15,
+        "raw_class_distribution": {
+          "SMG": 8,
+          "Sniper Dataset": 4,
+          "Shotgun": 3
+        },
+        "smoothed_class_distribution": {
+          "SMG": 15
+        },
+        "raw_class_switches": 2,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 100.0,
+        "dominant_raw_class": "SMG",
+        "dominant_smoothed_class": "SMG"
+      },
+      "9": {
+        "total_detections": 86,
+        "raw_class_distribution": {
+          "SMG": 30,
+          "Shotgun": 17,
+          "knife": 39
+        },
+        "smoothed_class_distribution": {
+          "SMG": 47,
+          "Shotgun": 9,
+          "knife": 30
+        },
+        "raw_class_switches": 8,
+        "smoothed_class_switches": 2,
+        "jitter_reduction_percent": 75.0,
+        "dominant_raw_class": "knife",
+        "dominant_smoothed_class": "SMG"
+      },
+      "10": {
+        "total_detections": 56,
+        "raw_class_distribution": {
+          "rocket launcher": 55,
+          "grenade": 1
+        },
+        "smoothed_class_distribution": {
+          "rocket launcher": 56
+        },
+        "raw_class_switches": 2,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 100.0,
+        "dominant_raw_class": "rocket launcher",
+        "dominant_smoothed_class": "rocket launcher"
+      },
+      "11": {
+        "total_detections": 8,
+        "raw_class_distribution": {
+          "Sniper Dataset": 8
+        },
+        "smoothed_class_distribution": {
+          "Sniper Dataset": 8
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "Sniper Dataset",
+        "dominant_smoothed_class": "Sniper Dataset"
+      },
+      "12": {
+        "total_detections": 29,
+        "raw_class_distribution": {
+          "grenade": 28,
+          "Shotgun": 1
+        },
+        "smoothed_class_distribution": {
+          "grenade": 29
+        },
+        "raw_class_switches": 2,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 100.0,
+        "dominant_raw_class": "grenade",
+        "dominant_smoothed_class": "grenade"
+      },
+      "13": {
+        "total_detections": 1,
+        "raw_class_distribution": {
+          "grenade": 1
+        },
+        "smoothed_class_distribution": {
+          "grenade": 1
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "grenade",
+        "dominant_smoothed_class": "grenade"
+      },
+      "14": {
+        "total_detections": 121,
+        "raw_class_distribution": {
+          "grenade": 96,
+          "rocket launcher": 24,
+          "knife": 1
+        },
+        "smoothed_class_distribution": {
+          "grenade": 110,
+          "rocket launcher": 11
+        },
+        "raw_class_switches": 6,
+        "smoothed_class_switches": 2,
+        "jitter_reduction_percent": 66.66666666666666,
+        "dominant_raw_class": "grenade",
+        "dominant_smoothed_class": "grenade"
+      },
+      "15": {
+        "total_detections": 2,
+        "raw_class_distribution": {
+          "grenade": 2
+        },
+        "smoothed_class_distribution": {
+          "grenade": 2
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "grenade",
+        "dominant_smoothed_class": "grenade"
+      },
+      "16": {
+        "total_detections": 2,
+        "raw_class_distribution": {
+          "grenade": 2
+        },
+        "smoothed_class_distribution": {
+          "grenade": 2
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "grenade",
+        "dominant_smoothed_class": "grenade"
+      },
+      "17": {
+        "total_detections": 71,
+        "raw_class_distribution": {
+          "knife": 69,
+          "Shotgun": 2
+        },
+        "smoothed_class_distribution": {
+          "knife": 71
+        },
+        "raw_class_switches": 1,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 100.0,
+        "dominant_raw_class": "knife",
+        "dominant_smoothed_class": "knife"
+      }
+    },
+    "overall_jitter_reduction_percent": 72.97297297297297
+  },
+  "sample_video_03_tracking.csv": {
+    "input_csv": "phase2\\dataset\\outputs\\tracking_results\\sample_video_03_tracking.csv",
+    "output_csv": "phase2\\dataset\\outputs\\tracking_results\\sample_video_03_tracking_smoothed.csv",
+    "window_size": 20,
+    "total_detections": 3269,
+    "total_tracks": 31,
+    "total_raw_class_switches": 87,
+    "total_smoothed_class_switches": 34,
+    "tracks": {
+      "1": {
+        "total_detections": 1,
+        "raw_class_distribution": {
+          "SMG": 1
+        },
+        "smoothed_class_distribution": {
+          "SMG": 1
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "SMG",
+        "dominant_smoothed_class": "SMG"
+      },
+      "2": {
+        "total_detections": 326,
+        "raw_class_distribution": {
+          "SMG": 155,
+          "Shotgun": 90,
+          "Sniper Dataset": 74,
+          "knife": 7
+        },
+        "smoothed_class_distribution": {
+          "SMG": 175,
+          "Shotgun": 77,
+          "Sniper Dataset": 74
+        },
+        "raw_class_switches": 21,
+        "smoothed_class_switches": 9,
+        "jitter_reduction_percent": 57.14285714285714,
+        "dominant_raw_class": "SMG",
+        "dominant_smoothed_class": "SMG"
+      },
+      "3": {
+        "total_detections": 7,
+        "raw_class_distribution": {
+          "Shotgun": 7
+        },
+        "smoothed_class_distribution": {
+          "Shotgun": 7
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "Shotgun",
+        "dominant_smoothed_class": "Shotgun"
+      },
+      "4": {
+        "total_detections": 116,
+        "raw_class_distribution": {
+          "SMG": 98,
+          "Sniper Dataset": 18
+        },
+        "smoothed_class_distribution": {
+          "SMG": 100,
+          "Sniper Dataset": 16
+        },
+        "raw_class_switches": 6,
+        "smoothed_class_switches": 2,
+        "jitter_reduction_percent": 66.66666666666666,
+        "dominant_raw_class": "SMG",
+        "dominant_smoothed_class": "SMG"
+      },
+      "5": {
+        "total_detections": 136,
+        "raw_class_distribution": {
+          "Shotgun": 133,
+          "SMG": 3
+        },
+        "smoothed_class_distribution": {
+          "Shotgun": 136
+        },
+        "raw_class_switches": 2,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 100.0,
+        "dominant_raw_class": "Shotgun",
+        "dominant_smoothed_class": "Shotgun"
+      },
+      "6": {
+        "total_detections": 5,
+        "raw_class_distribution": {
+          "Shotgun": 5
+        },
+        "smoothed_class_distribution": {
+          "Shotgun": 5
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "Shotgun",
+        "dominant_smoothed_class": "Shotgun"
+      },
+      "7": {
+        "total_detections": 13,
+        "raw_class_distribution": {
+          "Shotgun": 13
+        },
+        "smoothed_class_distribution": {
+          "Shotgun": 13
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "Shotgun",
+        "dominant_smoothed_class": "Shotgun"
+      },
+      "8": {
+        "total_detections": 21,
+        "raw_class_distribution": {
+          "Shotgun": 6,
+          "Sniper Dataset": 15
+        },
+        "smoothed_class_distribution": {
+          "Shotgun": 12,
+          "Sniper Dataset": 9
+        },
+        "raw_class_switches": 1,
+        "smoothed_class_switches": 1,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "Sniper Dataset",
+        "dominant_smoothed_class": "Shotgun"
+      },
+      "9": {
+        "total_detections": 124,
+        "raw_class_distribution": {
+          "SMG": 108,
+          "Sniper Dataset": 3,
+          "Shotgun": 13
+        },
+        "smoothed_class_distribution": {
+          "SMG": 122,
+          "Shotgun": 2
+        },
+        "raw_class_switches": 2,
+        "smoothed_class_switches": 1,
+        "jitter_reduction_percent": 50.0,
+        "dominant_raw_class": "SMG",
+        "dominant_smoothed_class": "SMG"
+      },
+      "10": {
+        "total_detections": 14,
+        "raw_class_distribution": {
+          "SMG": 14
+        },
+        "smoothed_class_distribution": {
+          "SMG": 14
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "SMG",
+        "dominant_smoothed_class": "SMG"
+      },
+      "11": {
+        "total_detections": 11,
+        "raw_class_distribution": {
+          "Shotgun": 2,
+          "Sniper Dataset": 9
+        },
+        "smoothed_class_distribution": {
+          "Shotgun": 4,
+          "Sniper Dataset": 7
+        },
+        "raw_class_switches": 1,
+        "smoothed_class_switches": 1,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "Sniper Dataset",
+        "dominant_smoothed_class": "Sniper Dataset"
+      },
+      "12": {
+        "total_detections": 262,
+        "raw_class_distribution": {
+          "Shotgun": 194,
+          "SMG": 64,
+          "Sniper Dataset": 4
+        },
+        "smoothed_class_distribution": {
+          "Shotgun": 193,
+          "SMG": 69
+        },
+        "raw_class_switches": 9,
+        "smoothed_class_switches": 4,
+        "jitter_reduction_percent": 55.55555555555556,
+        "dominant_raw_class": "Shotgun",
+        "dominant_smoothed_class": "Shotgun"
+      },
+      "13": {
+        "total_detections": 13,
+        "raw_class_distribution": {
+          "SMG": 8,
+          "Shotgun": 5
+        },
+        "smoothed_class_distribution": {
+          "SMG": 13
+        },
+        "raw_class_switches": 1,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 100.0,
+        "dominant_raw_class": "SMG",
+        "dominant_smoothed_class": "SMG"
+      },
+      "14": {
+        "total_detections": 16,
+        "raw_class_distribution": {
+          "Sniper Dataset": 16
+        },
+        "smoothed_class_distribution": {
+          "Sniper Dataset": 16
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "Sniper Dataset",
+        "dominant_smoothed_class": "Sniper Dataset"
+      },
+      "15": {
+        "total_detections": 68,
+        "raw_class_distribution": {
+          "SMG": 68
+        },
+        "smoothed_class_distribution": {
+          "SMG": 68
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "SMG",
+        "dominant_smoothed_class": "SMG"
+      },
+      "16": {
+        "total_detections": 97,
+        "raw_class_distribution": {
+          "Sniper Dataset": 75,
+          "Shotgun": 22
+        },
+        "smoothed_class_distribution": {
+          "Sniper Dataset": 81,
+          "Shotgun": 16
+        },
+        "raw_class_switches": 5,
+        "smoothed_class_switches": 1,
+        "jitter_reduction_percent": 80.0,
+        "dominant_raw_class": "Sniper Dataset",
+        "dominant_smoothed_class": "Sniper Dataset"
+      },
+      "17": {
+        "total_detections": 178,
+        "raw_class_distribution": {
+          "SMG": 119,
+          "Shotgun": 4,
+          "Sniper Dataset": 55
+        },
+        "smoothed_class_distribution": {
+          "SMG": 128,
+          "Sniper Dataset": 50
+        },
+        "raw_class_switches": 6,
+        "smoothed_class_switches": 2,
+        "jitter_reduction_percent": 66.66666666666666,
+        "dominant_raw_class": "SMG",
+        "dominant_smoothed_class": "SMG"
+      },
+      "18": {
+        "total_detections": 16,
+        "raw_class_distribution": {
+          "SMG": 11,
+          "Shotgun": 5
+        },
+        "smoothed_class_distribution": {
+          "SMG": 16
+        },
+        "raw_class_switches": 1,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 100.0,
+        "dominant_raw_class": "SMG",
+        "dominant_smoothed_class": "SMG"
+      },
+      "19": {
+        "total_detections": 13,
+        "raw_class_distribution": {
+          "Shotgun": 13
+        },
+        "smoothed_class_distribution": {
+          "Shotgun": 13
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "Shotgun",
+        "dominant_smoothed_class": "Shotgun"
+      },
+      "20": {
+        "total_detections": 55,
+        "raw_class_distribution": {
+          "Shotgun": 55
+        },
+        "smoothed_class_distribution": {
+          "Shotgun": 55
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "Shotgun",
+        "dominant_smoothed_class": "Shotgun"
+      },
+      "21": {
+        "total_detections": 630,
+        "raw_class_distribution": {
+          "Sniper Dataset": 9,
+          "Shotgun": 502,
+          "SMG": 4,
+          "Pistol": 115
+        },
+        "smoothed_class_distribution": {
+          "Sniper Dataset": 7,
+          "Shotgun": 507,
+          "Pistol": 116
+        },
+        "raw_class_switches": 8,
+        "smoothed_class_switches": 3,
+        "jitter_reduction_percent": 62.5,
+        "dominant_raw_class": "Shotgun",
+        "dominant_smoothed_class": "Shotgun"
+      },
+      "22": {
+        "total_detections": 171,
+        "raw_class_distribution": {
+          "Shotgun": 135,
+          "Sniper Dataset": 26,
+          "SMG": 10
+        },
+        "smoothed_class_distribution": {
+          "Shotgun": 146,
+          "Sniper Dataset": 20,
+          "SMG": 5
+        },
+        "raw_class_switches": 2,
+        "smoothed_class_switches": 2,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "Shotgun",
+        "dominant_smoothed_class": "Shotgun"
+      },
+      "23": {
+        "total_detections": 119,
+        "raw_class_distribution": {
+          "Shotgun": 115,
+          "Sniper Dataset": 4
+        },
+        "smoothed_class_distribution": {
+          "Shotgun": 119
+        },
+        "raw_class_switches": 1,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 100.0,
+        "dominant_raw_class": "Shotgun",
+        "dominant_smoothed_class": "Shotgun"
+      },
+      "24": {
+        "total_detections": 183,
+        "raw_class_distribution": {
+          "SMG": 85,
+          "Shotgun": 98
+        },
+        "smoothed_class_distribution": {
+          "SMG": 86,
+          "Shotgun": 97
+        },
+        "raw_class_switches": 8,
+        "smoothed_class_switches": 3,
+        "jitter_reduction_percent": 62.5,
+        "dominant_raw_class": "Shotgun",
+        "dominant_smoothed_class": "Shotgun"
+      },
+      "25": {
+        "total_detections": 16,
+        "raw_class_distribution": {
+          "SMG": 16
+        },
+        "smoothed_class_distribution": {
+          "SMG": 16
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "SMG",
+        "dominant_smoothed_class": "SMG"
+      },
+      "26": {
+        "total_detections": 253,
+        "raw_class_distribution": {
+          "Shotgun": 148,
+          "Sniper Dataset": 101,
+          "SMG": 4
+        },
+        "smoothed_class_distribution": {
+          "Shotgun": 160,
+          "Sniper Dataset": 93
+        },
+        "raw_class_switches": 5,
+        "smoothed_class_switches": 3,
+        "jitter_reduction_percent": 40.0,
+        "dominant_raw_class": "Shotgun",
+        "dominant_smoothed_class": "Shotgun"
+      },
+      "27": {
+        "total_detections": 2,
+        "raw_class_distribution": {
+          "Shotgun": 2
+        },
+        "smoothed_class_distribution": {
+          "Shotgun": 2
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "Shotgun",
+        "dominant_smoothed_class": "Shotgun"
+      },
+      "28": {
+        "total_detections": 210,
+        "raw_class_distribution": {
+          "Sniper Dataset": 25,
+          "SMG": 2,
+          "Shotgun": 183
+        },
+        "smoothed_class_distribution": {
+          "Sniper Dataset": 36,
+          "Shotgun": 174
+        },
+        "raw_class_switches": 3,
+        "smoothed_class_switches": 1,
+        "jitter_reduction_percent": 66.66666666666666,
+        "dominant_raw_class": "Shotgun",
+        "dominant_smoothed_class": "Shotgun"
+      },
+      "29": {
+        "total_detections": 9,
+        "raw_class_distribution": {
+          "SMG": 9
+        },
+        "smoothed_class_distribution": {
+          "SMG": 9
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "SMG",
+        "dominant_smoothed_class": "SMG"
+      },
+      "30": {
+        "total_detections": 165,
+        "raw_class_distribution": {
+          "SMG": 58,
+          "Shotgun": 107
+        },
+        "smoothed_class_distribution": {
+          "SMG": 70,
+          "Shotgun": 95
+        },
+        "raw_class_switches": 5,
+        "smoothed_class_switches": 1,
+        "jitter_reduction_percent": 80.0,
+        "dominant_raw_class": "Shotgun",
+        "dominant_smoothed_class": "Shotgun"
+      },
+      "31": {
+        "total_detections": 19,
+        "raw_class_distribution": {
+          "Sniper Dataset": 19
+        },
+        "smoothed_class_distribution": {
+          "Sniper Dataset": 19
+        },
+        "raw_class_switches": 0,
+        "smoothed_class_switches": 0,
+        "jitter_reduction_percent": 0.0,
+        "dominant_raw_class": "Sniper Dataset",
+        "dominant_smoothed_class": "Sniper Dataset"
+      }
+    },
+    "overall_jitter_reduction_percent": 60.91954022988506
+  }
+}
