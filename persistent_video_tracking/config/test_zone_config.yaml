@@ -1,0 +1,51 @@
+# Test Configuration with active zones for sample_video_01
+models:
+  weapon_s: "weights/yolo26s_best.pt"
+  weapon_m: "weights/yolo26m_best.pt"
+  person: "yolov8n.pt"
+  device: "cpu"
+
+detection:
+  img_size: 640
+  weapon:
+    conf_threshold: 0.25
+    iou_threshold: 0.55
+    wbf_weights: [1.0, 1.1]
+    fusion_mode: "wbf"
+  person:
+    conf_threshold: 0.35
+    coco_person_class_id: 0
+
+tracking:
+  weapon:
+    track_activation_threshold: 0.25
+    lost_track_buffer: 30
+    minimum_matching_threshold: 0.8
+  person:
+    track_activation_threshold: 0.30
+    lost_track_buffer: 30
+    minimum_matching_threshold: 0.75
+
+analytics:
+  stationary_velocity_threshold_px_s: 15.0
+  min_segment_length: 5
+  max_continuous_frame_gap: 1
+  dwell_radius_px: 50.0
+  minimum_dwell_seconds: 0.2
+
+association:
+  iow_threshold: 0.15
+  proximity_distance_px: 150.0
+  temporal_window_frames: 5
+  min_association_score: 0.35
+
+zones:
+  normalized: false
+  definitions:
+    upper_firing_lane: [[0, 0], [1080, 0], [1080, 1400], [0, 1400]]
+    lower_staging_area: [[0, 1400], [1080, 1400], [1080, 1920], [0, 1920]]
+
+output:
+  base_dir: "persistent_video_tracking/outputs"
+  save_annotated_video: false
+
