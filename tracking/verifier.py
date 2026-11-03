@@ -50,12 +50,23 @@ def to_tensor_batch(crops: np.ndarray):
     return torch.from_numpy(np.ascontiguousarray(x.transpose(0, 3, 1, 2)))
 
 
-def build_model():
-    import torch.nn as nn
-    from torchvision.models import resnet18
+ARCHS = ("resnet18", "resnet50", "efficientnet_b0", "convnext_tiny")
 
-    m = resnet18(weights=None)
-    m.fc = nn.Linear(m.fc.in_features, 1)
+
+def build_model(arch: str = "resnet18", pretrained: bool = False):
+    """Binary classifier on an ImageNet backbone (torchvision); pretrained loads the ImageNet weights (training)."""
+    import torch.nn as nn
+    import torchvision.models as tvm
+
+    if arch not in ARCHS:
+        raise ValueError(f"unknown verifier backbone {arch!r}; choose from {ARCHS}")
+    weights = {"resnet18": "ResNet18_Weights", "resnet50": "ResNet50_Weights", "efficientnet_b0": "EfficientNet_B0_Weights",
+               "convnext_tiny": "ConvNeXt_Tiny_Weights"}[arch]
+    m = getattr(tvm, arch)(weights=getattr(tvm, weights).IMAGENET1K_V1 if pretrained else None)
+    if arch.startswith("resnet"):
+        m.fc = nn.Linear(m.fc.in_features, 1)
+    else:   # efficientnet / convnext: last layer of the classifier head
+        m.classifier[-1] = nn.Linear(m.classifier[-1].in_features, 1)
     return m
 
 
@@ -66,7 +77,7 @@ class WeaponVerifier:
         ckpt = torch.load(str(path), map_location="cpu", weights_only=True)
         self.meta = {k: v for k, v in ckpt.items() if k != "state_dict"}
         self.scale, self.size = float(self.meta.get("crop_scale", CROP_SCALE)), int(self.meta.get("crop_size", CROP_SIZE))
-        self.model = build_model()
+        self.model = build_model(self.meta.get("arch", "resnet18"))
         self.model.load_state_dict(ckpt["state_dict"])
         self.device = device
         self.model.to(device).eval()

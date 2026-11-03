@@ -37,7 +37,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 import tracking.verifier as V  # noqa: E402
 from tracking.verifier import build_model, to_tensor_batch  # noqa: E402
 
-CROP = {"scale": V.CROP_SCALE, "size": V.CROP_SIZE}   # set from --crop-scale / --crop-size
+CROP = {"scale": V.CROP_SCALE, "size": V.CROP_SIZE, "arch": "resnet18"}   # set from --crop-scale / --crop-size / --arch
 
 
 def crop_square(img, box, jitter=None):
@@ -162,13 +162,10 @@ def train(stores, out: Path, device: str, epochs: int, log) -> dict:
     import torch
     import torch.nn as nn
     from sklearn.metrics import average_precision_score, roc_auc_score
-    from torchvision.models import ResNet18_Weights, resnet18
 
     xtr, ytr = np.stack(stores["train"]["x"]), np.asarray(stores["train"]["y"], np.float32)
     xva, yva = np.stack(stores["val"]["x"]), np.asarray(stores["val"]["y"], np.float32)
-    model = build_model()
-    pre = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1).state_dict()
-    model.load_state_dict({k: v for k, v in pre.items() if not k.startswith("fc.")}, strict=False)
+    model = build_model(CROP["arch"], pretrained=True)
     model.to(device)
     pos_w = torch.tensor([float((ytr == 0).sum()) / max(float((ytr == 1).sum()), 1.0)], dtype=torch.float32, device=device)
     loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_w)
@@ -208,7 +205,8 @@ def train(stores, out: Path, device: str, epochs: int, log) -> dict:
         log(json.dumps(history[-1]))
         if auc > best["auc"]:
             best = {"auc": auc, "ap": ap, "epoch": ep + 1}
-            torch.save({"state_dict": {k: v.cpu() for k, v in model.state_dict().items()}, "crop_scale": CROP["scale"],
+            torch.save({"state_dict": {k: v.cpu() for k, v in model.state_dict().items()}, "arch": CROP["arch"],
+                        "crop_scale": CROP["scale"],
                         "crop_size": CROP["size"], "epoch": ep + 1, "val_auc": round(auc, 4), "val_ap": round(ap, 4),
                         "created": datetime.now().isoformat(timespec="seconds")}, out / "weapon_verifier.pt")
             np.save(out / "val_scores.npy", np.c_[yva, p])
@@ -225,8 +223,15 @@ def main():
     ap.add_argument("--crop-scale", type=float, default=V.CROP_SCALE, help="crop side / box side (context)")
     ap.add_argument("--crop-size", type=int, default=V.CROP_SIZE, help="crop size in pixels")
     ap.add_argument("--install-name", default="weapon_verifier_v1.pt")
+    ap.add_argument("--arch", default="resnet18", choices=V.ARCHS)
+    ap.add_argument("--crops-from", help="reuse crops.npz of an earlier run (same crop scale and size)")
+    ap.add_argument("--replay", help="Mendeley replay to mine (default: the zoom-crop detector's final replay)")
+    ap.add_argument("--detector", help="detector for the UCF frames (default: the zoom-crop detector)")
     args = ap.parse_args()
-    CROP.update(scale=args.crop_scale, size=args.crop_size)
+    CROP.update(scale=args.crop_scale, size=args.crop_size, arch=args.arch)
+    global REPLAY, DETECTOR
+    REPLAY = Path(args.replay).resolve() if args.replay else REPLAY
+    DETECTOR = Path(args.detector).resolve() if args.detector else DETECTOR
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     log_fp = open(out / "log.txt", "a")
@@ -240,7 +245,7 @@ def main():
     random.seed(0)
     rng = np.random.default_rng(0)
     stores = {s: {"x": [], "y": [], "src": []} for s in ("train", "val")}
-    cache = out / "crops.npz"
+    cache = Path(args.crops_from) if args.crops_from else out / "crops.npz"
     if cache.exists():
         z = np.load(cache)
         for s in ("train", "val"):
@@ -253,7 +258,7 @@ def main():
     log(f"crops: {json.dumps(counts)}")
     res = train(stores, out, args.device, args.epochs, log)
     result = {"created": datetime.now().isoformat(timespec="seconds"), "description":
-              f"second-stage weapon verifier (ResNet-18, {CROP['size']} px crops, {CROP['scale']}x context) trained on "
+              f"second-stage weapon verifier ({CROP['arch']}, {CROP['size']} px crops, {CROP['scale']}x context) trained on "
               "training-split crops only", "crop": CROP,
               "replay": str(REPLAY.relative_to(PROJECT_ROOT)), "detector": str(DETECTOR.relative_to(PROJECT_ROOT)),
               "crop_counts": counts, **res}
