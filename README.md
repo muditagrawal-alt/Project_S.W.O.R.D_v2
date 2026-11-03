@@ -101,11 +101,57 @@ streamlit run app.py
 ### Evaluation
 
 ```bash
-# Full evaluation (all models + ensembles)
-python ensemble/evaluate_ensemble.py --mode all
+# Corrected protocol: mAP from all predictions (conf >= 0.001), COCO metrics, bootstrap CIs, batch-1 latency.
+# Tune ensemble parameters / operating threshold on one split, report on another:
+python ensemble/benchmark.py --tune-list splits/val.txt --test-list splits/test.txt
 
-# Quick test (200 images)
-python ensemble/evaluate_ensemble.py --max-images 200
+# Reproduce the legacy numbers (for comparison only)
+python ensemble/benchmark.py --legacy-protocol
+```
+
+`ensemble/evaluate_ensemble.py`, `run_sota_benchmarks.py`, `optimize_*.py` and `archive_and_compare_benchmarks.py`
+are kept only to reproduce the legacy tables and warn when run.
+
+### Connected system (Phases 1, 2-slot, 3, 4, 5 → 6)
+
+```
+frame ─► Phase 2 slot (persons + track IDs + trajectories)      tracking/interface.py   (stand-in until the team's module)
+      ─► Phase 3 RTMPose-m on tracked boxes (CoreML on Apple)    pose_pipeline.py
+      ─► Phase 1 weapon detector ─► weapon tracks ─► weapon↔wrist/person association   tracking/pipeline.py
+      ─► Phase 4 PoseC3D NTU-120, per-person 3 s windows every 1 s (sync or background thread)   action_recognition/
+      ─► Phase 5 temporal threat fusion: NORMAL / ELEVATED / SUSPICIOUS_ACTIVITY / WEAPON_RELATED_EVENT   fusion/
+      ─► Phase 6 incidents, evidence clips (H.264) + SHA-256, events, audit log, WebSocket, dashboard   service/
+```
+
+```bash
+# research run on a video, an image-sequence JSON (with timestamps) or a camera: records + baseline ladder
+python -m pipeline.run --video clip.mp4 --out-dir research/runs/<id> [--gt gt.json] [--save-video] [--weapon-imgsz 1280]
+
+# Phase 6 service: dashboard at http://127.0.0.1:8000 (SQLite by default; SWORD_DATABASE_URL for PostgreSQL)
+python -m service
+```
+
+- **Phase 2 is a slot.** Plug a tracker in with `SwordSystem(phase2=...)` and check it with `python -m tracking.contract`.
+  See [tracking/PHASE2_INTERFACE.md](tracking/PHASE2_INTERFACE.md).
+- **Phase 5** is a transparent rule engine (`fusion/rules.py`: smoothed evidence, persistence, hysteresis, ablation
+  switches). It is also the baseline that the Temporal Transformer (`fusion/transformer.py`: model and training code)
+  has to beat once interval labels exist. `fusion/evaluate.py` turns one recorded run into the baseline ladder
+  B0 (frame-level detection) … B4 (full temporal rules) for the research hypothesis.
+- Levels describe observable events, never a person's identity or intent.
+- The service has no authentication and binds to 127.0.0.1. Add authentication before exposing it on a network.
+- **Interval labels** for training Phase 5: format in `fusion/labels.py`, rules in
+  [fusion/LABELING_GUIDELINES.md](fusion/LABELING_GUIDELINES.md). Review tool: `python -m service`, then
+  http://127.0.0.1:8000/labeler (pre-filled derived labels, revisions with annotator and time, CSV export).
+- **CCTV fine-tuning** of the detectors: `research/tools/data/` (public CCTV datasets, leakage-free splits; nothing in
+  `dataset/` is modified) and `research/tools/detector/finetune_cctv.py`.
+
+Per-frame records follow `tracking/schema.py` (`sword.frames.v1`), a superset of the Phase 4 tracking/pose schema.
+Phases 1–3 alone: `python -m tracking.pipeline --video clip.mp4 --out clip_frames.json --pose`.
+
+### Tests
+
+```bash
+python -m pytest tests/ -q
 ```
 
 ### Training (Reproducibility)
@@ -134,7 +180,14 @@ python models/rt_detr/train_rtdetr.py --data dataset/dataset.yaml
 │   ├── yolo26s/                # YOLO26s training
 │   ├── yolo26m/                # YOLO26m training & resume
 │   └── rt_detr/                # RT-DETR-L training & resume
-├── weights/                     # Model weights (download separately)
+├── tracking/                    # Phase 2 slot (interface, stand-in, contract check), weapon tracks, association, schema
+├── pose_pipeline.py             # Phase 3 RTMPose-m (rtmlib)
+├── action_recognition/          # Phase 4 PoseC3D (pure PyTorch, verified against MMAction2), online recognizer
+├── fusion/                      # Phase 5 features, rule engine, baseline ladder/metrics, Temporal Transformer
+├── pipeline/                    # SwordSystem (Phases 1-5 per frame) and the run/evaluate entry point
+├── service/                     # Phase 6 FastAPI + WebSocket, SQL database, evidence clips, audit log, dashboard
+├── research/tools/              # dataset audit, Phase 4 equivalence, integration tests (results are untracked)
+├── weights/                     # Model weights (download separately; PoseC3D checkpoint from OpenMMLab)
 └── dataset/dataset.yaml         # Dataset configuration
 ```
 
@@ -155,7 +208,9 @@ confidence-weighted average of coordinates, producing tighter bounding boxes.
 All models were trained on Kaggle Tesla T4 GPUs with:
 - **Dataset**: 22,709 train / 5,679 validation images
 - **Image size**: 640×640
-- **Optimizer**: AdamW with cosine annealing LR schedule
+- **Optimizer**: Ultralytics `optimizer=auto` for YOLO26s/m (AdamW only for RT-DETR-L), cosine LR schedule
+- **Early stopping**: the published runs used patience 5 (YOLO) / 10 (RT-DETR) and stopped while mAP was still rising;
+  the training scripts now default to patience 50 / 30, a fixed batch of 16 and an explicit seed
 - **Augmentation**: Mosaic (disabled in final epochs)
 
 ## Citation
