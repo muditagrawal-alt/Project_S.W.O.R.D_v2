@@ -36,6 +36,7 @@ from ensemble.metrics import coco_metrics, detection_metrics, precompute_tp  # n
 ANN = PROJECT_ROOT / "research/data/cctv_gun/data/usrt/annotation_detection/annotations_all.json"
 SEQ = PROJECT_ROOT / "research/data/mock_attack/sequences"
 PISTOL = CLASS_NAMES.index("Pistol")
+DEV_CAMERAS = ("Cam1", "Cam5")   # model selection; Cam7 is held out
 PUBLISHED = {"Faster R-CNN+FPN (R50)": 22.1, "Deformable DETR (R50)": 15.9, "DetectoRS (R50)": 25.7,
              "Swin-T Faster R-CNN+FPN": 26.2, "ConvNeXt-T Faster R-CNN+FPN": 27.3}
 
@@ -131,8 +132,9 @@ def evaluate(replay: Path, profile: str | None, score_key: str = "score", n_boot
         recs = records(replay, f, mode, score_key)
         precompute_tp(recs)
         cam7 = [r for r in recs if r["camera"] == "Cam7"]
+        dev = [r for r in recs if r["camera"] in DEV_CAMERAS]
         res[mode] = {"AP50_all_usrt": round(ap50(recs), 1), "AP50_all_usrt_ci95": cluster_ci(recs, n_boot),
-                     "AP50_cam7": round(ap50(cam7), 1), "AP50_all_usrt_voc_style": round(100 * detection_metrics(recs, ["handgun"])["mAP50"], 1),
+                     "AP50_cam7": round(ap50(cam7), 1), "AP50_dev": round(ap50(dev), 1), "AP50_all_usrt_voc_style": round(100 * detection_metrics(recs, ["handgun"])["mAP50"], 1),
                      "images": len(recs), "gt_handguns": int(sum(len(r["gt_boxes"]) for r in recs)),
                      "detections": int(sum(len(r["pred_scores"]) for r in recs))}
     return {"filters": {k: list(v) if isinstance(v, tuple) else v for k, v in f.items()}, "results": res}
@@ -154,13 +156,15 @@ def main():
         result["systems"][label] = {"replay": run, "profile": profile or None, **evaluate(Path(run), profile or None, n_boot=args.n_boot)}
         print(label, json.dumps(result["systems"][label]["results"]), flush=True)
     (out / "results.json").write_text(json.dumps(result, indent=2))
-    lines = ["| system | handgun AP50, all USRT (95% CI) | any-weapon AP50, all USRT (95% CI) | handgun AP50, Cam7 |", "|---|---|---|---|"]
+    lines = ["| system | handgun AP50, all USRT (95% CI) | any-weapon AP50, all USRT (95% CI) | handgun AP50, Cam7 | "
+             "handgun AP50, DEV Cam1+5 |", "|---|---|---|---|---|"]
     for k, v in PUBLISHED.items():
-        lines.append(f"| {k} (published, train UCF+MGD) | {v} | — | — |")
+        lines.append(f"| {k} (published, train UCF+MGD) | {v} | — | — | — |")
     for label, s in result["systems"].items():
         h, a = s["results"]["handgun"], s["results"]["any"]
         lines.append(f"| {label} | {h['AP50_all_usrt']} ({h['AP50_all_usrt_ci95'][0]}–{h['AP50_all_usrt_ci95'][1]}) | "
-                     f"{a['AP50_all_usrt']} ({a['AP50_all_usrt_ci95'][0]}–{a['AP50_all_usrt_ci95'][1]}) | {h['AP50_cam7']} |")
+                     f"{a['AP50_all_usrt']} ({a['AP50_all_usrt_ci95'][0]}–{a['AP50_all_usrt_ci95'][1]}) | {h['AP50_cam7']} | "
+                     f"{h.get('AP50_dev', '—')} |")
     (out / "table.md").write_text("\n".join(lines) + "\n")
     print("\n".join(lines))
 
