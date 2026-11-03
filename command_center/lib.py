@@ -111,7 +111,7 @@ def list_runs() -> List[dict]:
         runs.append({"name": d.name, "path": d, "kind": kind,
                      "report": (d / "REPORT.md").exists(), "table": (d / "results_table.md").exists(),
                      "figures": sorted(str(p.relative_to(d)) for p in d.glob("*.png")),
-                     "aborted": any(t in d.name.upper() for t in ("ABORTED", "SUPERSEDED", "SMOKE"))})
+                     "aborted": any(t in d.name.upper() for t in ("ABORTED", "FAILED", "SUPERSEDED", "SMOKE"))})
     return runs
 
 
