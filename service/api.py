@@ -107,6 +107,8 @@ class RunRequest(BaseModel):
     use_ensemble: bool = False
     weapon_model: Optional[str] = Field(None, description="a .pt file inside weights/")
     weapon_imgsz: int = Field(640, ge=320, le=2560, description="weapon detector input size")
+    weapon_zoom: str = Field("", pattern=r"^(|person|hands|person\+hands)$", description="person-zoom crops")
+    profile: Optional[str] = Field(None, description="named system profile (pipeline/profiles.py); overrides detector/zoom options")
     save_video: bool = False
     open_level: str = "SUSPICIOUS_ACTIVITY"
     pre_s: float = 5.0
@@ -125,8 +127,14 @@ def _is_stream(source: str) -> bool:
 def default_make_system(fps: float, req: RunRequest, live: bool):
     from pipeline.system import SwordSystem
 
+    if req.profile:
+        from pipeline.profiles import build_system
+
+        return build_system(req.profile, fps, use_pose=req.use_pose, use_action=req.use_action, async_action=live)
+
     kw: Dict[str, Any] = dict(use_pose=req.use_pose, use_action=req.use_action, use_ensemble=req.use_ensemble,
-                              async_action=live, weapon_imgsz=req.weapon_imgsz)
+                              async_action=live, weapon_imgsz=req.weapon_imgsz,
+                              weapon_zoom=tuple(m for m in req.weapon_zoom.split("+") if m))
     if req.weapon_model:
         kw["weapon_model"] = req.weapon_model
     return SwordSystem(fps=fps, **kw)
@@ -343,6 +351,11 @@ def create_app(database_url: Optional[str] = None, data_dir: Optional[str] = Non
     def create_run(req: RunRequest):
         if req.open_level not in LEVELS[1:]:
             raise HTTPException(422, f"open_level must be one of {LEVELS[1:]}")
+        if req.profile:
+            from pipeline.profiles import list_profiles
+
+            if req.profile not in list_profiles():
+                raise HTTPException(422, f"unknown profile {req.profile!r}")
         if not _is_stream(req.source):
             src = Path(req.source).expanduser().resolve()
             if not src.is_file():

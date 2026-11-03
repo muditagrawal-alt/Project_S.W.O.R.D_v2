@@ -55,3 +55,9 @@ kaggle.json
 
 # ─── Runtime data (Phase 6 service) ───
 service_data/
+
+# ─── Local model artifacts and provenance (weights/ is not versioned) ───
+weights/*.json
+
+# ─── Machine-specific system profiles (written by research/tools/integration/install_profile.py) ───
+config/profiles.json

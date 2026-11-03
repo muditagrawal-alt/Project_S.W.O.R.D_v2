@@ -237,6 +237,7 @@ def run_video(video: str, out_dir: Path, system: Optional[SwordSystem] = None, g
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--video", required=True, help="video file, image-sequence JSON, camera index or stream URL")
+    ap.add_argument("--profile", help="named system profile (pipeline/profiles.py); overrides the detector/zoom/fusion options")
     ap.add_argument("--out-dir", required=True)
     ap.add_argument("--gt")
     ap.add_argument("--save-video", action="store_true")
@@ -245,17 +246,25 @@ def main():
     ap.add_argument("--weapon-model", default=None)
     ap.add_argument("--ensemble", action="store_true")
     ap.add_argument("--weapon-imgsz", type=int, default=640, help="weapon detector input size (640 = training size)")
+    ap.add_argument("--weapon-zoom", default="", help="person-zoom crops: '', 'person', 'hands' or 'person+hands'")
+    ap.add_argument("--zoom-imgsz", type=int, default=640)
     ap.add_argument("--stride", type=int, default=1, help="process every k-th frame (temporal subsampling)")
     ap.add_argument("--no-pose", action="store_true")
     ap.add_argument("--no-action", action="store_true")
     ap.add_argument("--device", default=None)
     args = ap.parse_args()
     kw = {"use_ensemble": args.ensemble, "use_pose": not args.no_pose, "use_action": not args.no_action, "device": args.device,
-          "weapon_imgsz": args.weapon_imgsz}
+          "weapon_imgsz": args.weapon_imgsz, "weapon_zoom": tuple(m for m in args.weapon_zoom.split("+") if m),
+          "zoom_imgsz": args.zoom_imgsz}
     if args.weapon_model:
         kw["weapon_model"] = args.weapon_model
+    make = None
+    if args.profile:
+        from pipeline.profiles import build_system
+
+        make = lambda fps: build_system(args.profile, fps, use_pose=not args.no_pose, use_action=not args.no_action)  # noqa: E731
     res = run_video(args.video, Path(args.out_dir), gt=args.gt, save_video=args.save_video, max_frames=args.max_frames,
-                    fps_override=args.fps, system_kwargs=kw, frame_stride=args.stride)
+                    fps_override=args.fps, system_kwargs=kw, frame_stride=args.stride, make_system=make)
     s = res["summary"]
     print(json.dumps({k: s[k] for k in ("frames", "wall_seconds", "person_tracks", "action_updates", "fusion_events",
                                         "scene_level_share")}, indent=1))

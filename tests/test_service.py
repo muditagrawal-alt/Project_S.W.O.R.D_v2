@@ -147,6 +147,8 @@ def test_validation(client, video, tmp_path):
     assert client.post("/api/runs", json={"source": str(video.parent / "missing.avi")}).status_code == 422
     assert client.post("/api/runs", json={"source": str(video), "open_level": "NORMAL"}).status_code == 422
     assert client.post("/api/runs", json={"source": str(video), "weapon_model": str(video)}).status_code == 422
+    assert client.post("/api/runs", json={"source": str(video), "profile": "no-such-profile"}).status_code == 422
+    assert client.post("/api/runs", json={"source": str(video), "weapon_zoom": "everything"}).status_code == 422
     assert client.get("/api/incidents/999").status_code == 404
     assert client.post("/api/runs/nope/stop").status_code == 404
     health = client.get("/api/health").json()
