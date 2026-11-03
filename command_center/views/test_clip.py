@@ -29,12 +29,12 @@ with left:
     source, gt, live = None, None, False
     if kind == "Built-in test clip":
         samples = sample_sources()
-        if not samples:
-            st.error("No local test data found (research/data/).")
-            st.stop()
-        choice = st.selectbox("Clip", list(samples))
-        source = samples[choice]
-        gt = source if source.suffix == ".json" else None
+        if samples:
+            choice = st.selectbox("Clip", list(samples))
+            source = samples[choice]
+            gt = source if source.suffix == ".json" else None
+        else:   # fresh clone: research/data/ is not versioned; uploads and cameras still work
+            st.warning("No local test clips (research/data/ is not in git). Upload a video or use a camera instead.")
     elif kind == "Upload a video":
         up = st.file_uploader("Video file", type=["mp4", "avi", "mov", "mkv"])
         if up is not None:
