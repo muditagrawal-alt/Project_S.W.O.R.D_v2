@@ -64,3 +64,25 @@ class ByteTrackWrapper:
 
     def reset(self) -> None:
         self._tracker.reset()
+
+
+class BoTSORTWrapper(ByteTrackWrapper):
+    """BoT-SORT (Ultralytics, botsort.yaml defaults): ByteTrack's two-stage association plus camera-motion
+    compensation (sparse optical flow) and an improved Kalman state; no appearance ReID. Needs the frame."""
+
+    def __init__(self, track_buffer: int = 30, gmc_method: str = "sparseOptFlow", **kw):
+        from ultralytics.trackers.bot_sort import BOTSORT
+
+        defaults = dict(track_high_thresh=0.25, track_low_thresh=0.1, new_track_thresh=0.25, match_thresh=0.8,
+                        fuse_score=True)
+        self.cfg = defaults | kw | dict(track_buffer=track_buffer, gmc_method=gmc_method)
+        self._tracker = BOTSORT(SimpleNamespace(tracker_type="botsort", proximity_thresh=0.5, appearance_thresh=0.8,
+                                                with_reid=False, model="auto", **self.cfg))
+
+    def update(self, xyxy: np.ndarray, conf: np.ndarray, cls: np.ndarray | None = None, img: np.ndarray | None = None) -> list[dict]:
+        conf = np.asarray(conf, dtype=np.float32).reshape(-1)
+        cls = np.zeros_like(conf) if cls is None else cls
+        out = self._tracker.update(_Detections(xyxy, conf, cls), img)
+        return [{"track_id": int(tid), "bbox": [float(x1), float(y1), float(x2), float(y2)], "score": float(score),
+                 "cls": int(c), "det_idx": int(det_idx)}
+                for x1, y1, x2, y2, tid, score, c, det_idx in np.asarray(out).reshape(-1, 8)]

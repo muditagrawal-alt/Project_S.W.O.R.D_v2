@@ -27,7 +27,7 @@ from typing import List, Optional, Protocol, Tuple
 
 import numpy as np
 
-from tracking.tracker import ByteTrackWrapper
+from tracking.tracker import BoTSORTWrapper, ByteTrackWrapper
 from tracking.trajectory import TrajectoryAnalyzer
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -61,5 +61,24 @@ class StandInPhase2:
     def update(self, frame_bgr: np.ndarray, t: float) -> Tuple[List[dict], List[dict]]:
         r = self.detector.predict(frame_bgr, conf=self.det_conf, classes=[0], device=self.device, verbose=False)[0]
         people = self.tracker.update(r.boxes.xyxy.cpu().numpy(), r.boxes.conf.cpu().numpy())
+        feats, events = self.traj.update(t, people)
+        return [{**p, "trajectory": feats.get(p["track_id"])} for p in people], events
+
+
+class BoTSORTPhase2(StandInPhase2):
+    """The stand-in with BoT-SORT (camera-motion compensation) instead of ByteTrack: best tracker of the Phase 2
+    benchmark (research/tools/tracking/mot_benchmark.py)."""
+
+    def __init__(self, *args, **kw):
+        super().__init__(*args, **kw)
+        self.name = self.name.replace("ByteTrack", "BoT-SORT")
+
+    def reset(self) -> None:
+        self.tracker = BoTSORTWrapper(track_buffer=self.track_buffer)
+        self.traj = TrajectoryAnalyzer(zones=self.zones, homography=self.homography)
+
+    def update(self, frame_bgr: np.ndarray, t: float) -> Tuple[List[dict], List[dict]]:
+        r = self.detector.predict(frame_bgr, conf=self.det_conf, classes=[0], device=self.device, verbose=False)[0]
+        people = self.tracker.update(r.boxes.xyxy.cpu().numpy(), r.boxes.conf.cpu().numpy(), img=frame_bgr)
         feats, events = self.traj.update(t, people)
         return [{**p, "trajectory": feats.get(p["track_id"])} for p in people], events

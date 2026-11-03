@@ -136,8 +136,9 @@ def main():
                          "(the recorded evaluation is kept as evaluation_recorded.json)")
     ap.add_argument("--profile", help="with --reevaluate: use this system profile's zoom threshold and fusion settings "
                                       "(pipeline/profiles.py) instead of the defaults")
-    ap.add_argument("--phase2", default=None, choices=("standin", "persistent", "persistent-legacy"),
+    ap.add_argument("--phase2", default=None, choices=("standin", "botsort", "persistent", "persistent-legacy"),
                     help="Phase 2 module for live runs: stand-in, the team's persistent_video_tracking, or as submitted")
+    ap.add_argument("--track-seconds", type=float, default=None, help="Phase 2 lost-track time (stand-in / BoT-SORT)")
     ap.add_argument("--source-run", help="with --reevaluate: copy the recorded segments from this run into --out first, so "
                                          "the source recording keeps its own evaluation")
     args = ap.parse_args()
@@ -181,9 +182,10 @@ def main():
             from pipeline.profiles import build_system, make_phase2
 
             if args.profile:   # live run of a named profile (with --reevaluate the profile re-scores recordings instead)
-                systems[fps] = build_system(args.profile, fps, phase2=args.phase2)
+                systems[fps] = build_system(args.profile, fps, phase2=args.phase2, track_seconds=args.track_seconds)
             else:
-                systems[fps] = SwordSystem(fps=fps, phase2=make_phase2(args.phase2 or "standin", fps), **kw)
+                systems[fps] = SwordSystem(fps=fps, phase2=make_phase2(args.phase2 or "standin", fps,
+                                                                       track_seconds=args.track_seconds), **kw)
         return systems[fps]
 
     per_seg, rows = {}, []
@@ -317,6 +319,7 @@ def main():
                 "platform": platform.platform(), "python": platform.python_version(),
                 "reevaluated_with_current_code": args.reevaluate, "actions_dir": args.actions_dir,
                 "profile": args.profile, "source_run": args.source_run, "phase2": args.phase2,
+                "track_seconds": args.track_seconds,
                 "notes": ["mock-attack frames are 2 fps; FusionConfig.for_fps adapts the persistence grace (a priori)",
                           "fusion action thresholds were calibrated on vtest only; nothing was tuned on mock-attack"]}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2, default=str))

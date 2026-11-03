@@ -249,7 +249,7 @@ def main():
     ap.add_argument("--weapon-zoom", default="", help="person-zoom crops: '', 'person', 'hands' or 'person+hands'")
     ap.add_argument("--zoom-imgsz", type=int, default=640)
     ap.add_argument("--stride", type=int, default=1, help="process every k-th frame (temporal subsampling)")
-    ap.add_argument("--phase2", default=None, choices=("standin", "persistent", "persistent-legacy"),
+    ap.add_argument("--phase2", default=None, choices=("standin", "botsort", "persistent", "persistent-legacy"),
                     help="Phase 2 module: stand-in, the team's persistent_video_tracking, or that package as submitted")
     ap.add_argument("--no-pose", action="store_true")
     ap.add_argument("--no-action", action="store_true")
