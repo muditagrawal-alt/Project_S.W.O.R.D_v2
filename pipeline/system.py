@@ -24,7 +24,7 @@ from tracking.pipeline import DEFAULT_WEAPON_MODEL, SwordPipeline, pick_device
 def _compact_action(r: dict) -> dict:
     keep = ("t", "window_start", "window_end", "n_frames", "partner_track_id", "top1_id", "top1_name", "top1_prob",
             "assigned_group", "threat_score", "group_probs", "top5", "heuristic_aiming_posture", "heuristic_aiming_conf",
-            "probabilities_120", "latency_s")
+            "probabilities_120", "latency_s", "weapon_action_prob")
     return {k: r[k] for k in keep if k in r}
 
 
@@ -33,7 +33,8 @@ class SwordSystem:
                  use_ensemble: bool = False, use_pose: bool = True, use_action: bool = True,
                  fusion_cfg: Optional[FusionConfig] = None, phase2=None, zones=None, homography=None,
                  action_device: Optional[str] = None, pose_device: Optional[str] = None, async_action: bool = False,
-                 weapon_imgsz: int = 640):
+                 weapon_imgsz: int = 640, weapon_zoom: tuple = (), zoom_imgsz: int = 640, zoom_min_score: float = 0.0,
+                 zoom_min_window: int = 0, weapon_max_area: float = 1.0):
         import onnxruntime
 
         self.device = pick_device(device)
@@ -42,7 +43,9 @@ class SwordSystem:
         self.fps = fps
         self.p123 = SwordPipeline(fps, self.device, weapon_model=weapon_model, use_ensemble=use_ensemble,
                                   use_pose=use_pose, zones=zones, homography=homography, phase2=phase2,
-                                  pose_device=pose_device, weapon_imgsz=weapon_imgsz)
+                                  pose_device=pose_device, weapon_imgsz=weapon_imgsz, weapon_zoom=weapon_zoom,
+                                  zoom_imgsz=zoom_imgsz, zoom_min_score=zoom_min_score,
+                                  zoom_min_window=zoom_min_window, weapon_max_area=weapon_max_area)
         self.p4 = None
         if use_action and self.p123.pose is not None:
             from action_recognition.online import AsyncActionRecognizer, OnlineActionRecognizer
@@ -80,7 +83,7 @@ class SwordSystem:
         for p in rec["persons"]:
             a = latest.get(p["track_id"])
             p["action"] = None if a is None else {k: a[k] for k in ("t", "top1_name", "top1_prob", "assigned_group",
-                                                                    "threat_score") if k in a}
+                                                                    "threat_score", "weapon_action_prob") if k in a}
         state, events = self.p5.update(t, rec, frame.shape, latest)
         t3 = time.perf_counter()
         rec["threat"] = state
