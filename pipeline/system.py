@@ -34,7 +34,8 @@ class SwordSystem:
                  fusion_cfg: Optional[FusionConfig] = None, phase2=None, zones=None, homography=None,
                  action_device: Optional[str] = None, pose_device: Optional[str] = None, async_action: bool = False,
                  weapon_imgsz: int = 640, weapon_zoom: tuple = (), zoom_imgsz: int = 640, zoom_min_score: float = 0.0,
-                 zoom_min_window: int = 0, weapon_max_area: float = 1.0):
+                 zoom_min_window: int = 0, weapon_max_area: float = 1.0, weapon_verifier: Optional[str] = None,
+                 verify_mode: str = "geo", verify_min: float = 0.0):
         import onnxruntime
 
         self.device = pick_device(device)
@@ -45,7 +46,8 @@ class SwordSystem:
                                   use_pose=use_pose, zones=zones, homography=homography, phase2=phase2,
                                   pose_device=pose_device, weapon_imgsz=weapon_imgsz, weapon_zoom=weapon_zoom,
                                   zoom_imgsz=zoom_imgsz, zoom_min_score=zoom_min_score,
-                                  zoom_min_window=zoom_min_window, weapon_max_area=weapon_max_area)
+                                  zoom_min_window=zoom_min_window, weapon_max_area=weapon_max_area,
+                                  weapon_verifier=weapon_verifier, verify_mode=verify_mode, verify_min=verify_min)
         self.p4 = None
         if use_action and self.p123.pose is not None:
             from action_recognition.online import AsyncActionRecognizer, OnlineActionRecognizer

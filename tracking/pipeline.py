@@ -37,7 +37,8 @@ from tracking.interface import DEFAULT_PERSON_MODEL  # noqa: E402  (COCO-pretrai
 DEFAULT_WEAPON_MODEL = PROJECT_ROOT / "weights" / "yolo26s_best.pt"
 
 
-def weapons_from_detections(weapon_trk: ByteTrackWrapper, wb, ws, wc, persons: list, src=None) -> tuple[list, list]:
+def weapons_from_detections(weapon_trk: ByteTrackWrapper, wb, ws, wc, persons: list, src=None,
+                            extra: list | None = None) -> tuple[list, list]:
     """Raw detections -> (raw records, weapons linked to persons). Shared by the live pipeline and offline
     replays/re-evaluation so both use the same tracking and association.
 
@@ -53,6 +54,9 @@ def weapons_from_detections(weapon_trk: ByteTrackWrapper, wb, ws, wc, persons: l
     if src is not None:   # detection origin: "full" frame or "zoom" crop (tracking/zoom.py)
         for r, o in zip(raw, src):
             r["src"] = o
+    if extra is not None:  # e.g. det_score / verify from the second-stage verifier (tracking/verifier.py)
+        for r, e in zip(raw, extra):
+            r.update(e)
     tid_by_det = {t["det_idx"]: t["track_id"] for t in weapon_trk.update(wb, ws, wc)}
     dets = [{"bbox": r["bbox"], "det_idx": i} for i, r in enumerate(raw)]
     links = associate(dets, persons)
@@ -66,28 +70,45 @@ def weapons_from_detections(weapon_trk: ByteTrackWrapper, wb, ws, wc, persons: l
 
 def rederive_weapons(frames: list, fps: float, track_seconds: float = 1.5, zoom_min_score: float = 0.0,
                      max_area_frac: float = 1.0, zoom_min_window: int = 0, frame_shape=None,
-                     zoom_modes: tuple = ("hands",)) -> None:
+                     zoom_modes: tuple = ("hands",), verify_mode: str = "none", verify_min: float = 0.0) -> None:
     """Recompute frames[i]["weapons"] from the recorded raw `weapon_detections` and persons with the CURRENT code
     (fresh weapon tracker, same settings as SwordPipeline). Lets stored runs be re-scored after a code change.
     The live pipeline's detection filters are applied to the recorded detections: zoom_min_score (zoom-crop
     detections below it), max_area_frac (boxes larger than this share of the frame; needs frame_shape) and
     zoom_min_window (zoom detections from windows smaller than this; needs frame_shape and the recorded zoom_modes).
     Filtered detections are removed from `weapon_detections` too: the live pipeline never records them, and the
-    frame-level baselines (B0) read that list."""
+    frame-level baselines (B0) read that list. verify_mode / verify_min: fuse the recorded detector score with the
+    second-stage verifier's p(weapon) ("verify", written by research/tools/phase1/apply_weapon_verifier.py) and drop
+    detections whose p(weapon) is below verify_min, as SwordPipeline does with a verifier."""
     from tracking.zoom import ZoomConfig, from_allowed_window
 
     trk = ByteTrackWrapper(track_buffer=max(5, int(round(fps * track_seconds))))
     zcfg = ZoomConfig(modes=tuple(zoom_modes), min_window=zoom_min_window)
     for f in frames:
         d = [x for x in f["weapon_detections"] if x.get("src") != "zoom" or x["score"] >= zoom_min_score]
+        if verify_mode != "none" or verify_min > 0:
+            from tracking.verifier import fuse_scores
+
+            fused = []
+            for x in d:
+                if "verify" not in x:
+                    fused.append(x)
+                    continue
+                if x["verify"] < verify_min:
+                    continue
+                base = x.get("det_score", x["score"])
+                fused.append({**x, "det_score": base, "score": round(float(fuse_scores([base], [x["verify"]], verify_mode)[0]), 3)})
+            d = fused
         if max_area_frac < 1.0 or zoom_min_window:
             assert frame_shape is not None, "max_area_frac / zoom_min_window need frame_shape"
             H, W = frame_shape[:2]
             d = [x for x in d if (x["bbox"][2] - x["bbox"][0]) * (x["bbox"][3] - x["bbox"][1]) <= max_area_frac * H * W
                  and (not zoom_min_window or x.get("src") != "zoom" or from_allowed_window(x["bbox"], f["persons"], (H, W), zcfg))]
+        keys = ("det_score", "verify")
         f["weapon_detections"], f["weapons"] = weapons_from_detections(
             trk, [x["bbox"] for x in d], [x["score"] for x in d], [x["cls"] for x in d], f["persons"],
-            src=[x.get("src", "full") for x in d] if any("src" in x for x in d) else None)
+            src=[x.get("src", "full") for x in d] if any("src" in x for x in d) else None,
+            extra=[{k: x[k] for k in keys if k in x} for x in d] if any("verify" in x for x in d) else None)
 
 
 def pick_device(device: str | None) -> str:
@@ -109,7 +130,8 @@ class SwordPipeline:
                  weapon_model: Path = DEFAULT_WEAPON_MODEL, use_ensemble: bool = False, use_pose: bool = True,
                  zones: list | None = None, homography=None, det_conf: float = 0.1, track_seconds: float = 1.5,
                  phase2=None, pose_device: str = "cpu", weapon_imgsz: int = 640, weapon_zoom: tuple = (),
-                 zoom_imgsz: int = 640, zoom_min_score: float = 0.0, zoom_min_window: int = 0, weapon_max_area: float = 1.0):
+                 zoom_imgsz: int = 640, zoom_min_score: float = 0.0, zoom_min_window: int = 0, weapon_max_area: float = 1.0,
+                 weapon_verifier: str | None = None, verify_mode: str = "geo", verify_min: float = 0.0):
         from ultralytics import YOLO
 
         from tracking.interface import StandInPhase2
@@ -133,6 +155,12 @@ class SwordPipeline:
         # boxes larger than this share of the frame are dropped: CCTV weapons are small (largest CCTV training box:
         # 12.3% of the frame), while web training images taught the detector frame-filling weapons
         self.weapon_max_area = weapon_max_area
+        # second-stage verifier (tracking/verifier.py): re-checks every detection on a crop; scores are fused with it
+        self.verifier, self.verify_mode, self.verify_min = None, verify_mode, verify_min
+        if weapon_verifier:
+            from tracking.verifier import WeaponVerifier
+
+            self.verifier = WeaponVerifier(weapon_verifier, device=device)
         if self.weapon_zoom and use_ensemble:
             raise ValueError("person-zoom is implemented for single detectors, not the WBF ensemble")
         self.track_buffer = max(5, int(round(fps * track_seconds)))
@@ -153,7 +181,8 @@ class SwordPipeline:
             "weapon_detector": ("WBF ensemble (YOLO26s+YOLO26m+RT-DETR-L)" if use_ensemble else Path(weapon_model).name)
                                + f" @ imgsz {weapon_imgsz}"
                                + (f" + zoom {'+'.join(self.weapon_zoom)} @ {zoom_imgsz}" if self.weapon_zoom else "")
-                               + (f", boxes <= {weapon_max_area:.1%} of frame" if weapon_max_area < 1.0 else ""),
+                               + (f", boxes <= {weapon_max_area:.1%} of frame" if weapon_max_area < 1.0 else "")
+                               + (f", verifier {Path(weapon_verifier).name} ({verify_mode})" if weapon_verifier else ""),
             "pose": "RTMPose-m body7 256x192 (rtmlib, top-down on tracked boxes)" if self.pose else None,
         }
 
@@ -208,8 +237,18 @@ class SwordPipeline:
             keep = (wb[:, 2] - wb[:, 0]) * (wb[:, 3] - wb[:, 1]) <= self.weapon_max_area * frame.shape[0] * frame.shape[1]
             wb, ws, wc = wb[keep], np.asarray(ws)[keep], np.asarray(wc)[keep]
             src = [o for o, k in zip(src, keep) if k] if src is not None else None
+        extra = None
+        if self.verifier is not None and len(wb):
+            from tracking.verifier import fuse_scores
+
+            wb, ws, wc = np.asarray(wb, float).reshape(-1, 4), np.asarray(ws, float), np.asarray(wc)
+            v = self.verifier.predict(frame, wb)
+            keep = v >= self.verify_min
+            extra = [{"det_score": round(float(s0), 3), "verify": round(float(p), 4)} for s0, p, k in zip(ws, v, keep) if k]
+            wb, wc, src = wb[keep], wc[keep], [o for o, k in zip(src, keep) if k] if src is not None else None
+            ws = fuse_scores(ws[keep], v[keep], self.verify_mode)
         t4 = time.perf_counter()
-        raw, weapons = weapons_from_detections(self.weapon_trk, wb, ws, wc, persons, src=src)
+        raw, weapons = weapons_from_detections(self.weapon_trk, wb, ws, wc, persons, src=src, extra=extra)
         self.last_timing = {"phase2_ms": (t1 - t0) * 1e3, "phase3_pose_ms": (t2 - t1) * 1e3,
                             "phase1_weapons_ms": (t4 - t3) * 1e3, "assoc_ms": (time.perf_counter() - t4) * 1e3}
         return {"frame_idx": frame_idx, "timestamp": round(t, 4), "persons": persons, "weapons": weapons,

@@ -134,9 +134,24 @@ def test_live_step_applies_box_size_limit_and_min_window():
     p = SwordPipeline.__new__(SwordPipeline)
     p.phase2, p.pose, p.weapon_det, p.use_ensemble, p.device, p.det_conf = Phase2(), None, Model(), False, "cpu", 0.1
     p.weapon_imgsz, p.zoom_imgsz, p.zoom_min_score, p.weapon_trk = 1280, 640, 0.0, ByteTrackWrapper(track_buffer=5)
-    p.weapon_zoom, p.zoom_min_window, p.weapon_max_area = ("person",), 0, 1.0
+    p.weapon_zoom, p.zoom_min_window, p.weapon_max_area, p.verifier = ("person",), 0, 1.0, None
     frame = np.zeros((1080, 1920, 3), np.uint8)
     assert len(p.step(frame, 0, 0.0)["weapon_detections"]) == 3        # big + small + one zoom box
     p.zoom_min_window, p.weapon_max_area = 96, 0.125                       # person window 75 px < 96: no crops
     rec = p.step(frame, 1, 0.5)
     assert [d["bbox"] for d in rec["weapon_detections"]] == [[300.0, 300.0, 330.0, 340.0]]
+
+
+def test_rederive_fuses_verifier_scores_and_gates():
+    from tracking.pipeline import rederive_weapons
+
+    dets = [{"bbox": [300, 300, 330, 340], "cls": 0, "score": 0.81, "src": "full", "verify": 0.25},
+            {"bbox": [500, 300, 530, 340], "cls": 0, "score": 0.64, "src": "full", "verify": 0.04}]
+    fresh = lambda: [{"weapon_detections": [dict(d) for d in dets], "persons": []}]  # noqa: E731
+    f = fresh()
+    rederive_weapons(f, 2.0, verify_mode="geo")
+    assert [w["score"] for w in f[0]["weapon_detections"]] == [0.45, 0.16]          # sqrt(0.81*0.25), sqrt(0.64*0.04)
+    assert f[0]["weapon_detections"][0]["det_score"] == 0.81
+    f = fresh()
+    rederive_weapons(f, 2.0, verify_mode="product", verify_min=0.1)
+    assert [w["score"] for w in f[0]["weapon_detections"]] == [0.203]                 # second box gated out
