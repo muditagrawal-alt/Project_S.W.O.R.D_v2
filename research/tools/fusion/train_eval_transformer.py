@@ -45,6 +45,10 @@ MENDELEY_SPLIT = {"P1": "train", "P3": "train", "P2": "val", "P4": "test", "P5":
 RATE, WIN = 5.0, 50
 
 
+FILTERS: dict = {}                       # Phase 1 detection filters of --profile (tracking.pipeline.rederive_weapons)
+FUSION_FOR = FusionConfig.for_fps         # rules baseline: the --profile's fusion settings, else the defaults
+
+
 def load_set(rec_dirs, label_csv: Path, manifest: Path):
     labels = by_video(load_labels(label_csv))
     exh = json.loads(manifest.read_text()).get("extra", {}).get("exhaustive_per_video", {})
@@ -55,7 +59,8 @@ def load_set(rec_dirs, label_csv: Path, manifest: Path):
             doc = json.loads(fj.read_text())
             if doc["video"] not in labels:
                 continue
-            rederive_weapons(doc["frames"], doc["fps"])   # current association code
+            rederive_weapons(doc["frames"], doc["fps"], frame_shape=(doc["height"], doc["width"]),
+                             **FILTERS)   # current association code
             ts, x = export_scene_sequences(doc, RATE)
             lv = scene_levels(labels[doc["video"]], ts, exhaustive=exh.get(doc["video"], covers))
             items.append({"video": doc["video"], "doc": doc, "ts": ts, "x": x, "y": lv})
@@ -113,7 +118,7 @@ def evaluate_methods(items, model=None) -> dict:
     rules = []
     for it in items:
         fps = it["doc"]["fps"]
-        cfg = cfg_cache.setdefault(round(fps, 3), FusionConfig.for_fps(fps))
+        cfg = cfg_cache.setdefault(round(fps, 3), FUSION_FOR(fps))
         rules.append(rules_steps(it, copy.deepcopy(cfg)))
     preds["rules_B4"] = rules
     if model is not None:
@@ -168,9 +173,22 @@ def main():
                     "tested, e.g. because the replayed detector was trained on their frames")
     ap.add_argument("--epochs", type=int, default=40)
     ap.add_argument("--device", default="cpu")
+    ap.add_argument("--drop-features", nargs="*", default=[], help="scene features to zero out (ablation), e.g. max_act_weapon_learned")
+    ap.add_argument("--profile", help="system profile (pipeline/profiles.py): its detection filters are applied to the "
+                                      "recordings and its fusion settings to the rules baseline")
+    ap.add_argument("--zoom-modes", default="hands", help="with --profile: zoom modes the replays were recorded with")
     args = ap.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
+    if args.profile:
+        global FUSION_FOR
+        from pipeline.profiles import fusion_config, list_profiles
+
+        prof = list_profiles()[args.profile]
+        FILTERS.update(zoom_min_score=float(prof.get("zoom_min_score", 0.0)), max_area_frac=float(prof.get("weapon_max_area", 1.0)),
+                       zoom_min_window=int(prof.get("zoom_min_window", 0)),
+                       zoom_modes=tuple(m for m in args.zoom_modes.split("+") if m))
+        FUSION_FOR = lambda fps: fusion_config(args.profile, fps)  # noqa: E731
 
     men = load_set(args.mendeley, LABELS / "mendeley_derived.csv", LABELS / "mendeley_derived.manifest.json")
     split = lambda it: MENDELEY_SPLIT[it["video"].split("/")[2].split("_")[2]]  # noqa: E731
@@ -197,6 +215,11 @@ def main():
     if args.usrt:
         sets["usrt_external_test"] = load_set(args.usrt, LABELS / "usrt_derived_TEST_ONLY.csv",
                                               LABELS / "usrt_derived_TEST_ONLY.manifest.json")
+    if args.drop_features:   # ablation: zero the named scene features everywhere (train, val, test)
+        idx = [SCENE_FEATURES.index(f) for f in args.drop_features]
+        for its in sets.values():
+            for it in its:
+                it["x"][:, idx] = 0.0
     train_items = sets["mendeley_train"] + sets.get("ucf_train", [])
     results = {"created": datetime.now().isoformat(timespec="seconds"), "args": vars(args),
                "ucf_moved_to_train": results_forced if args.ucf else [],

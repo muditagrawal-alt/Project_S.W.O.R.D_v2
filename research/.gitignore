@@ -4,3 +4,4 @@
 !/.gitignore
 !/tools/
 /tools/**/__pycache__/
+/tools/**/runs/

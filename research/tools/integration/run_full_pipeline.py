@@ -18,6 +18,7 @@ import argparse
 import csv
 import json
 import platform
+import shutil
 import subprocess
 import sys
 import time
@@ -133,10 +134,34 @@ def main():
     ap.add_argument("--reevaluate", action="store_true",
                     help="re-score already recorded segments from frames.json with the current association/fusion/evaluation code "
                          "(the recorded evaluation is kept as evaluation_recorded.json)")
+    ap.add_argument("--profile", help="with --reevaluate: use this system profile's zoom threshold and fusion settings "
+                                      "(pipeline/profiles.py) instead of the defaults")
+    ap.add_argument("--source-run", help="with --reevaluate: copy the recorded segments from this run into --out first, so "
+                                         "the source recording keeps its own evaluation")
     args = ap.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     log_fp = open(out / "log.txt", "a")
+    if args.source_run:
+        for seg in sorted(Path(args.source_run).glob("segments/*/frames.json")):
+            dst = out / "segments" / seg.parent.name
+            if not (dst / "frames.json").exists():
+                dst.mkdir(parents=True, exist_ok=True)
+                for f in ("frames.json", "summary.json"):
+                    shutil.copy2(seg.parent / f, dst / f)
+                rec = seg.parent / ("evaluation_recorded.json" if (seg.parent / "evaluation_recorded.json").exists()
+                                    else "evaluation.json")
+                shutil.copy2(rec, dst / "evaluation.json")
+    filters, fusion_for = {}, FusionConfig.for_fps
+    if args.profile:
+        from pipeline.profiles import fusion_config, list_profiles
+
+        prof = list_profiles()[args.profile]
+        filters = {"zoom_min_score": float(prof.get("zoom_min_score", 0.0)),
+                   "max_area_frac": float(prof.get("weapon_max_area", 1.0)),
+                   "zoom_min_window": int(prof.get("zoom_min_window", 0)),
+                   "zoom_modes": tuple(prof.get("weapon_zoom") or ("hands",))}
+        fusion_for = lambda fps: fusion_config(args.profile, fps)  # noqa: E731
 
     def log(msg):
         line = f"[{datetime.now():%H:%M:%S}] {msg}"
@@ -172,9 +197,10 @@ def main():
                     for f, a in zip(doc["frames"], acts):
                         assert f["frame_idx"] == a["frame_idx"]
                         f["actions"] = a["actions"]
-                rederive_weapons(doc["frames"], doc["fps"])   # current tracking/association code
+                rederive_weapons(doc["frames"], doc["fps"], frame_shape=(doc["height"], doc["width"]),
+                                 **filters)   # current tracking/association code
                 rederived = doc["frames"]
-                cfg = FusionConfig.for_fps(doc["fps"])
+                cfg = fusion_for(doc["fps"])
                 res["evaluation"] = evaluate_frames(doc["frames"], (doc["height"], doc["width"]), doc["fps"],
                                                     str(src) if has_gt else None, cfg)
                 (seg_dir / "evaluation.json").write_text(json.dumps(res["evaluation"], indent=2))
@@ -248,9 +274,14 @@ def main():
         wr.writeheader()
         wr.writerows(rows)
 
-    lines = [f"# Full pipeline — {args.name}", "",
-             f"Detector: `{Path(args.weapon_model).name if not args.ensemble else 'WBF ensemble'}` @ imgsz {args.weapon_imgsz}; "
-             f"throughput {results['throughput_fps']} fps (mean over all frames).", ""]
+    if args.reevaluate and (args.profile or args.source_run):
+        header = (f"Re-scored recordings{f' of `{args.source_run}`' if args.source_run else ''}"
+                  f"{f' with profile `{args.profile}`' if args.profile else ''} (detector as recorded; timings are those of "
+                  f"the original recording, not of this configuration).")
+    else:
+        header = (f"Detector: `{Path(args.weapon_model).name if not args.ensemble else 'WBF ensemble'}` @ imgsz {args.weapon_imgsz}; "
+                  f"throughput {results['throughput_fps']} fps (mean over all frames).")
+    lines = [f"# Full pipeline — {args.name}", "", header, ""]
     for split, table in results["splits"].items():
         lines += [f"## {split}", ""]
         if split == "vtest_weapon_free":
@@ -278,6 +309,7 @@ def main():
                 "sources": next(iter(systems.values())).sources if systems else None,
                 "platform": platform.platform(), "python": platform.python_version(),
                 "reevaluated_with_current_code": args.reevaluate, "actions_dir": args.actions_dir,
+                "profile": args.profile, "source_run": args.source_run,
                 "notes": ["mock-attack frames are 2 fps; FusionConfig.for_fps adapts the persistence grace (a priori)",
                           "fusion action thresholds were calibrated on vtest only; nothing was tuned on mock-attack"]}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2, default=str))
