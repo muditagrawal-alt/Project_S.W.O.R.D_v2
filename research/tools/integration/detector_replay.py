@@ -69,12 +69,22 @@ def main():
     ap.add_argument("--imgsz", type=int, default=640)
     ap.add_argument("--conf", type=float, default=0.1, help="same detector threshold as the live pipeline")
     ap.add_argument("--device", default="mps")
+    ap.add_argument("--zoom", default="", help="person-zoom crops merged with the full frame: '', person, hands, person+hands")
+    ap.add_argument("--zoom-imgsz", type=int, default=640)
+    ap.add_argument("--zoom-min-window", type=int, default=0, help="skip zoom windows smaller than this (tracking/zoom.py)")
+    ap.add_argument("--reverse", action="store_true", help="process recordings in reverse order (a second process can "
+                                                           "share the work; finished recordings are skipped)")
+    ap.add_argument("--skip", nargs="*", default=[], help="skip recordings whose folder name contains any of these")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
     rec, out = Path(args.recording), Path(args.out)
     model = (RTDETR if "rtdetr" in Path(args.weights).name.lower() else YOLO)(args.weights)
-    files = sorted(list(rec.glob("videos/*/frames.json")) + list(rec.glob("segments/*/frames.json")))
+    from tracking.zoom import ZoomConfig, detect_in_windows, merge_detections, zoom_windows
+
+    zoom_modes = tuple(m for m in args.zoom.split("+") if m)
+    files = sorted(list(rec.glob("videos/*/frames.json")) + list(rec.glob("segments/*/frames.json")), reverse=args.reverse)
     t0, n_frames = time.time(), 0
+    files = [f for f in files if not any(k in f.parent.name for k in args.skip)]
     for fj in files:
         dst = out / fj.parent.relative_to(rec) / "frames.json"
         if dst.exists():
@@ -87,11 +97,20 @@ def main():
                 continue
             r = model.predict(img, imgsz=args.imgsz, conf=args.conf, device=args.device, verbose=False)[0]
             b, s, c = r.boxes.xyxy.cpu().numpy(), r.boxes.conf.cpu().numpy(), r.boxes.cls.cpu().numpy().astype(int)
-            f["weapon_detections"] = [{"bbox": [round(float(v), 1) for v in bb], "cls": int(cc), "score": round(float(ss), 3)}
-                                      for bb, ss, cc in zip(b, s, c)]
+            if zoom_modes:   # same code path as the live pipeline (tracking/zoom.py)
+                win = zoom_windows(f["persons"], img.shape, ZoomConfig(modes=zoom_modes, min_window=args.zoom_min_window))
+                zb, zs, zc = detect_in_windows(model, img, win, imgsz=args.zoom_imgsz, conf=args.conf, device=args.device)
+                b, s, c, origin = merge_detections([(b, s, c), (zb, zs, zc)], return_source=True)
+                src = ["full" if o == 0 else "zoom" for o in origin]
+            else:
+                src = None
+            f["weapon_detections"] = [{"bbox": [round(float(v), 1) for v in bb], "cls": int(cc), "score": round(float(ss), 3),
+                                       **({"src": src[k]} if src is not None else {})}
+                                      for k, (bb, ss, cc) in enumerate(zip(b, s, c))]
             f["weapons"] = []   # re-derived from weapon_detections by the evaluation code (tracking.pipeline.rederive_weapons)
             n_frames += 1
-        doc["sources"] = {**doc.get("sources", {}), "weapon_detector": f"{Path(args.weights).name} @ imgsz {args.imgsz} (replayed)"}
+        doc["sources"] = {**doc.get("sources", {}), "weapon_detector": f"{Path(args.weights).name} @ imgsz {args.imgsz}"
+                          + (f" + zoom {args.zoom} @ {args.zoom_imgsz}" if zoom_modes else "") + " (replayed)"}
         dst.parent.mkdir(parents=True, exist_ok=True)
         dst.write_text(json.dumps(doc))
         # let run_full_pipeline.py --reevaluate score the replay like any recording (timings are the original run's)
