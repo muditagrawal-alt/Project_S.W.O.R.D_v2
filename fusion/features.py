@@ -8,6 +8,7 @@ Channels (all in [0, 1] unless noted):
     act_weapon      PoseC3D WEAPON_THREAT group probability (Phase 4), 0 if the estimate is stale
     act_violent     PoseC3D VIOLENT_ATTACK group probability
     act_suspicious  PoseC3D SUSPICIOUS_AGGRESSION group probability
+    act_weapon_learned  learned weapon-action head on PoseC3D's 120 outputs (action_recognition/weapon_head.py), 0 if absent
     aiming          aiming-posture heuristic fired (0/1) — unvalidated, low weight
     draw_motion     hand near waist AND fast wrist (torso lengths/s), squashed to [0, 1]
     running         body-height-normalised speed above a walking pace, squashed to [0, 1]
@@ -27,7 +28,7 @@ from typing import Dict, List, Optional
 import numpy as np
 
 CHANNELS = ["weapon_hand", "weapon_body", "weapon_near", "act_weapon", "act_violent", "act_suspicious",
-            "aiming", "draw_motion", "running", "restricted"]
+            "aiming", "draw_motion", "running", "restricted", "act_weapon_learned"]
 
 
 @dataclass
@@ -83,6 +84,7 @@ def person_features(person: dict, weapons: List[dict], frame_shape, t: float, ac
         f["act_violent"] = float(gp.get("prob_VIOLENT_ATTACK", 0.0))
         f["act_suspicious"] = float(gp.get("prob_SUSPICIOUS_AGGRESSION", 0.0))
         f["aiming"] = float(bool(action.get("heuristic_aiming_posture", False)))
+        f["act_weapon_learned"] = float(action.get("weapon_action_prob", 0.0) or 0.0)
     kin = person.get("kinematics") or {}
     wv = kin.get("wrist_velocity") or {}
     speeds = [v for v in (wv.get("left_wrist_speed_norm"), wv.get("right_wrist_speed_norm")) if v is not None]

@@ -43,6 +43,10 @@ class FusionConfig:
     a_susp: float = 0.55
     a_event: float = 0.40
     a_elev_suspicious: float = 0.30
+    # learned weapon-action head: thresholds calibrated before any test data, as the 95th / 99th percentile of
+    # out-of-fold scores on no-gun windows (Mendeley P1-P3; research/runs/*_weapon-head/results.json)
+    l_low: float = 0.652
+    l_susp: float = 0.725
     draw_thr: float = 0.5
     aim_thr: float = 0.5
     run_thr: float = 0.5
@@ -53,6 +57,7 @@ class FusionConfig:
     use_pose: bool = True          # wrist linking / draw motion / aiming (Phase 3)
     use_action: bool = True        # PoseC3D groups (Phase 4)
     use_trajectory: bool = True    # running / restricted zones (Phase 2 stand-in)
+    use_learned_action: bool = True  # learned weapon-action head channel (no effect if the head is not installed)
     features: FeatureConfig = field(default_factory=FeatureConfig)
 
     @classmethod
@@ -102,7 +107,9 @@ class TemporalThreatEngine:
             f["weapon_body"] = max(f["weapon_body"], f["weapon_hand"])
             f["weapon_hand"] = f["draw_motion"] = f["aiming"] = 0.0
         if not c.use_action:
-            f["act_weapon"] = f["act_violent"] = f["act_suspicious"] = f["aiming"] = 0.0
+            f["act_weapon"] = f["act_violent"] = f["act_suspicious"] = f["aiming"] = f["act_weapon_learned"] = 0.0
+        if not c.use_learned_action:
+            f["act_weapon_learned"] = 0.0
         if not c.use_trajectory:
             f["running"] = f["restricted"] = 0.0
         return f
@@ -115,13 +122,15 @@ class TemporalThreatEngine:
         c, e = self.cfg, st.ema
         w = self._weapon(e)
         persisted = st.weapon_on_since is not None and t - st.weapon_on_since >= c.persist_s
-        if (w >= c.w_event and persisted) or (w >= c.w_susp and e["act_weapon"] >= c.a_event):
+        learned = e["act_weapon_learned"]
+        if ((w >= c.w_event and persisted) or (w >= c.w_susp and e["act_weapon"] >= c.a_event)
+                or (w >= c.w_low and learned >= c.l_susp)):
             return 3
-        if (w >= c.w_susp or e["act_violent"] >= c.a_susp or e["act_weapon"] >= c.a_susp
+        if (w >= c.w_susp or e["act_violent"] >= c.a_susp or e["act_weapon"] >= c.a_susp or learned >= c.l_susp
                 or (e["draw_motion"] >= c.draw_thr and w >= c.w_low) or (e["aiming"] >= c.aim_thr and w >= c.w_low)):
             return 2
         restricted = st.restricted_since is not None and t - st.restricted_since >= c.restricted_dwell_s
-        if (w >= c.w_low or e["act_suspicious"] >= c.a_elev_suspicious or e["act_violent"] >= c.a_low
+        if (w >= c.w_low or e["act_suspicious"] >= c.a_elev_suspicious or e["act_violent"] >= c.a_low or learned >= c.l_low
                 or e["act_weapon"] >= c.a_low or e["running"] >= c.run_thr or restricted):
             return 1
         return 0

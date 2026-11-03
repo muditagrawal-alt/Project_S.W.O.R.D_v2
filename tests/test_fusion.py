@@ -148,7 +148,7 @@ def test_baseline_ladder_keys_and_monotonic_filtering():
     frames = [frame(t, [person()], [weapon()] if 1.0 <= t < 4.0 else []) for t in ts]
     lad = baseline_ladder(frames, SHAPE)
     assert set(lad) == {"B0_frame", "B0+_persist", "B1_track", "B1+_plausible", "B2_hand", "B3_rules_noaction",
-                        "B4_rules_full", "B4_rules_full_WRE_only"}
+                        "B4_rules_full", "B4_rules_full_WRE_only", "B4_rules_no_learned_head"}
     assert all(len(v) == len(frames) for v in lad.values())
     assert sum(lad["B1_track"]) <= sum(lad["B0_frame"])  # persistence only removes frames
     assert any(lad["B4_rules_full"])
@@ -217,3 +217,22 @@ def test_close_events_get_no_early_credit_from_the_previous_event():
     early = (t >= 7) & (t <= 17.5)   # genuine warning 3 s before an isolated event
     m2 = evaluate_alarms(t, early, segs, gt, merge_gap_s=1.0)
     assert m2["delays_s"][0] == -3.0 and m2["delays_s"][1] == 0.0
+
+
+def test_learned_weapon_action_channel_escalates_only_above_calibrated_thresholds():
+    ts = np.arange(0, 6, 1 / FPS)
+    frames = [frame(t, [person()], []) for t in ts]
+    cfg = FusionConfig()
+
+    def run(prob, use=True):
+        eng = TemporalThreatEngine(FusionConfig(use_learned_action=use))
+        lv = []
+        for f in frames:
+            act = {1: {"t": f["timestamp"], "group_probs": {}, "weapon_action_prob": prob}}
+            lv.append(eng.update(f["timestamp"], f, SHAPE, act)[0]["scene_level"])
+        return lv
+
+    assert set(run(cfg.l_low - 0.05)) == {"NORMAL"}
+    assert "ELEVATED" in run((cfg.l_low + cfg.l_susp) / 2) and "SUSPICIOUS_ACTIVITY" not in run((cfg.l_low + cfg.l_susp) / 2)
+    assert "SUSPICIOUS_ACTIVITY" in run(0.95) and "WEAPON_RELATED_EVENT" not in run(0.95)   # no weapon evidence: <= SUSPICIOUS
+    assert set(run(0.95, use=False)) == {"NORMAL"}                                          # ablation switch

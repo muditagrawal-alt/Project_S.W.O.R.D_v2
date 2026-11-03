@@ -11,7 +11,8 @@ output into a per-frame alarm signal, so differences are attributable to the add
     B1+ plausible    B1 with the CCTV plausibility prior on weapon size
     B2  hand         B1+ but only weapons linked to a wrist (Phase 3 pose)
     B3  rules-noact  temporal rules engine without PoseC3D (Phases 1-3)
-    B4  rules-full   temporal rules engine with everything (Phases 1-4)
+    B4  rules-full   temporal rules engine with everything (Phases 1-4, incl. the learned weapon-action head)
+    B4- no head      B4 without the learned weapon-action head (zero-shot PoseC3D groups only)
 
 Metrics: alarm segments (rising edges, merged across gaps < merge_gap_s); false alarms per minute; time in alarm;
 with ground-truth weapon segments: event recall, detection delay (negative = warning before the weapon was annotated
@@ -191,6 +192,11 @@ def ladder_details(frames: List[dict], frame_shape, conf: float = 0.5, cfg: Opti
                                 "ids": [{k for k, v in t.items() if v >= thr} for t in tr_no]}
     out["B4_rules_full"] = {"flags": [LEVELS.index(x) >= thr for x in lv], "ids": [{k for k, v in t.items() if v >= thr} for t in tr]}
     out["B4_rules_full_WRE_only"] = {"flags": [LEVELS.index(x) >= 3 for x in lv], "ids": [{k for k, v in t.items() if v >= 3} for t in tr]}
+    no_head = copy.deepcopy(cfg)
+    no_head.use_learned_action = False
+    lv_nh, tr_nh = replay_rules(frames, frame_shape, no_head, with_tracks=True)
+    out["B4_rules_no_learned_head"] = {"flags": [LEVELS.index(x) >= thr for x in lv_nh],
+                                       "ids": [{k for k, v in t.items() if v >= thr} for t in tr_nh]}
     return out
 
 
