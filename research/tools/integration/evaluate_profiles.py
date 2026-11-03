@@ -42,7 +42,9 @@ def profile_params(p: dict) -> dict:
     fusion = p.get("fusion", {})
     return {**{k: fusion.get(k, getattr(base, k)) for k in TRIAL_KEYS}, **{k: v for k, v in fusion.items() if k not in TRIAL_KEYS},
             "zoom_min_score": float(p.get("zoom_min_score", 0.0)), "max_area_frac": float(p.get("weapon_max_area", 1.0)),
-            "zoom_min_window": int(p.get("zoom_min_window", 0))}
+            "zoom_min_window": int(p.get("zoom_min_window", 0)),
+            "verify_mode": p.get("verify_mode", "none") if p.get("weapon_verifier") else "none",
+            "verify_min": float(p.get("verify_min", 0.0)) if p.get("weapon_verifier") else 0.0}
 
 
 def sets_for(usrt: Path, mendeley: Path, ucf: Path) -> dict:

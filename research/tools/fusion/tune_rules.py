@@ -60,7 +60,10 @@ LABELS = PROJECT_ROOT / "research/data/labels"
 ZOOM_MIN = [0.1, 0.2, 0.3, 0.4]
 FIXED_FILTERS = {"max_area_frac": 0.125, "zoom_min_window": 96}   # a priori from the training data (see above)
 FILTERS_OFF = {"max_area_frac": 1.0, "zoom_min_window": 0}
-DET_KEYS = ("zoom_min_score", "max_area_frac", "zoom_min_window")
+# second-stage verifier (tracking/verifier.py; needs "verify" in the recordings): (fusion mode, minimum p(weapon))
+VERIFY = [("none", 0.0), ("geo", 0.0), ("product", 0.0), ("geo", 0.3)]
+VERIFY_OFF = {"verify_mode": "none", "verify_min": 0.0}
+DET_KEYS = ("zoom_min_score", "max_area_frac", "zoom_min_window", "verify_mode", "verify_min")
 RULE_GRID = {"w_susp": [0.3, 0.4, 0.5], "w_event": [0.5, 0.6], "persist_s": [0.5, 1.0, 1.5], "hold_s": [1.0, 2.0],
              "l_susp": [0.725, 0.8, 0.9, 1.01],   # 0.725 = calibrated 99th no-gun percentile; 1.01 = head never alarms alone
              "a_susp": [0.55, 0.7, 0.85]}         # 0.55 = default
@@ -202,6 +205,8 @@ def main():
     ap.add_argument("--fa-budget", type=float, nargs="+", default=[0.5, 1.0],
                     help="false-alarm budgets (per minute); one dev-selected operating point each")
     ap.add_argument("--reuse-trials", help="trials.json of a run with the same grid and recordings (selection only)")
+    ap.add_argument("--verifier", action="store_true", help="also search the second-stage verifier fusion (VERIFY); the "
+                                                            "recordings must carry 'verify' (apply_weapon_verifier.py)")
     ap.add_argument("--objective", choices=("pooled", "per-source"), default="pooled",
                     help="pooled: the budget applies to mock-attack dev and to ALL weapon-free dev minutes together; "
                          "per-source (v1/v2): to each dev source (the 2-minute Mendeley P2 no-gun set then decides alone)")
@@ -230,7 +235,9 @@ def main():
     base = FusionConfig()
     keys = list(RULE_GRID)
     zoom_modes = tuple(m for m in args.zoom_modes.split("+") if m)
-    dets = [{"zoom_min_score": z, **FIXED_FILTERS} for z in ZOOM_MIN] if zoom_modes else [{"zoom_min_score": 0.1, **FIXED_FILTERS}]
+    verify = VERIFY if args.verifier else [("none", 0.0)]
+    dets = [{"zoom_min_score": z, **FIXED_FILTERS, "verify_mode": m, "verify_min": vm}
+            for z in (ZOOM_MIN if zoom_modes else [0.1]) for m, vm in verify]
     split_keys = ("l_susp", "a_susp")   # one worker task per detection setting x (l_susp, a_susp)
     tasks = [(det, dict(zip(split_keys, v))) for det in dets for v in itertools.product(*(RULE_GRID[k] for k in split_keys))]
     dev_sets = {name: sets[name] for name in ("usrt_dev", "men_dev_nogun", "ucf_dev_normal")}
@@ -246,8 +253,9 @@ def main():
                 print(f"  task {i + 1}/{len(tasks)} {tasks[i]}: {len(trials)} trials so far", flush=True)
     fa_keys = (("dev_fa_usrt", "dev_fa_weapon_free_pooled") if args.objective == "pooled"
                else ("dev_fa_usrt", "dev_fa_mendeley_nogun", "dev_fa_ucf_normal"))
-    default_params = {k: getattr(base, k) for k in keys} | {"zoom_min_score": 0.1, **FILTERS_OFF}
-    dist = lambda t: sum(abs(t["params"][k] - default_params[k]) for k in default_params)  # noqa: E731
+    default_params = {k: getattr(base, k) for k in keys} | {"zoom_min_score": 0.1, **FILTERS_OFF, **VERIFY_OFF}
+    dist = lambda t: sum(abs(t["params"][k] - v) if isinstance(v, (int, float)) else float(t["params"][k] != v)  # noqa: E731
+                         for k, v in default_params.items())
     worst = lambda t: max(t[k] for k in fa_keys)  # noqa: E731
 
     def select(budget):
@@ -277,12 +285,13 @@ def main():
         best, n_feasible = select(budget)
         print(f"budget {budget}: selected on DEV {best} | feasible: {n_feasible}", flush=True)
         operating_points[str(budget)] = {"selected": best, "n_feasible": n_feasible, "test": report(best["params"]),
-                                         "test_filters_off": report(best["params"] | FILTERS_OFF)}
+                                         "test_filters_off": report(best["params"] | FILTERS_OFF),
+                                         **({"test_verifier_off": report(best["params"] | VERIFY_OFF)} if args.verifier else {})}
     first = operating_points[str(args.fa_budget[0])]
     dev_full = {name: apply_det(docs, default_params, zoom_modes) for name, docs in dev_sets.items()}
     default_rules_filters = default_params | FIXED_FILTERS | {"zoom_min_score": first["selected"]["params"]["zoom_min_score"]}
     result = {"created": datetime.now().isoformat(timespec="seconds"), "fa_budgets": args.fa_budget, "objective": args.objective,
-              "fa_keys": fa_keys, "grid": {"zoom_min_score": ZOOM_MIN, **RULE_GRID}, "fixed_filters": FIXED_FILTERS,
+              "fa_keys": fa_keys, "grid": {"zoom_min_score": ZOOM_MIN, **RULE_GRID, "verify": verify}, "fixed_filters": FIXED_FILTERS,
               "set_sizes": {k: len(v) for k, v in sets.items()}, "zoom_modes": zoom_modes, "n_trials": len(trials),
               "reused_trials": args.reuse_trials, "dev_frontier_recall_vs_worst_fa": frontier,
               "default_on_dev": dev_trial(dev_full, default_params), "test_default": report(default_params),
