@@ -72,6 +72,10 @@ def main():
     ap.add_argument("--zoom", default="", help="person-zoom crops merged with the full frame: '', person, hands, person+hands")
     ap.add_argument("--zoom-imgsz", type=int, default=640)
     ap.add_argument("--zoom-min-window", type=int, default=0, help="skip zoom windows smaller than this (tracking/zoom.py)")
+    ap.add_argument("--tta-scales", nargs="*", type=int, default=[], help="test-time augmentation: extra full-frame "
+                                                                         "image sizes merged with --imgsz")
+    ap.add_argument("--tta-flip", action="store_true", help="test-time augmentation: also the horizontally flipped frame")
+    ap.add_argument("--zoom-flip", action="store_true", help="test-time augmentation: also the horizontally flipped zoom crops")
     ap.add_argument("--reverse", action="store_true", help="process recordings in reverse order (a second process can "
                                                            "share the work; finished recordings are skipped)")
     ap.add_argument("--skip", nargs="*", default=[], help="skip recordings whose folder name contains any of these")
@@ -79,7 +83,7 @@ def main():
     args = ap.parse_args()
     rec, out = Path(args.recording), Path(args.out)
     model = (RTDETR if "rtdetr" in Path(args.weights).name.lower() else YOLO)(args.weights)
-    from tracking.zoom import ZoomConfig, detect_in_windows, merge_detections, zoom_windows
+    from tracking.zoom import ZoomConfig, detect_full_frame, detect_in_windows, merge_detections, zoom_windows
 
     zoom_modes = tuple(m for m in args.zoom.split("+") if m)
     files = sorted(list(rec.glob("videos/*/frames.json")) + list(rec.glob("segments/*/frames.json")), reverse=args.reverse)
@@ -95,11 +99,11 @@ def main():
             f = by_idx.get(idx)
             if f is None or img is None:
                 continue
-            r = model.predict(img, imgsz=args.imgsz, conf=args.conf, device=args.device, verbose=False)[0]
-            b, s, c = r.boxes.xyxy.cpu().numpy(), r.boxes.conf.cpu().numpy(), r.boxes.cls.cpu().numpy().astype(int)
+            b, s, c = detect_full_frame(model, img, args.imgsz, args.tta_scales, args.tta_flip, args.conf, args.device)
             if zoom_modes:   # same code path as the live pipeline (tracking/zoom.py)
                 win = zoom_windows(f["persons"], img.shape, ZoomConfig(modes=zoom_modes, min_window=args.zoom_min_window))
-                zb, zs, zc = detect_in_windows(model, img, win, imgsz=args.zoom_imgsz, conf=args.conf, device=args.device)
+                zb, zs, zc = detect_in_windows(model, img, win, imgsz=args.zoom_imgsz, conf=args.conf, device=args.device,
+                                               flip=args.zoom_flip)
                 b, s, c, origin = merge_detections([(b, s, c), (zb, zs, zc)], return_source=True)
                 src = ["full" if o == 0 else "zoom" for o in origin]
             else:
@@ -109,8 +113,10 @@ def main():
                                       for k, (bb, ss, cc) in enumerate(zip(b, s, c))]
             f["weapons"] = []   # re-derived from weapon_detections by the evaluation code (tracking.pipeline.rederive_weapons)
             n_frames += 1
-        doc["sources"] = {**doc.get("sources", {}), "weapon_detector": f"{Path(args.weights).name} @ imgsz {args.imgsz}"
-                          + (f" + zoom {args.zoom} @ {args.zoom_imgsz}" if zoom_modes else "") + " (replayed)"}
+        tta = "".join(f"+{sz}" for sz in args.tta_scales) + (" +flip" if args.tta_flip else "")
+        doc["sources"] = {**doc.get("sources", {}), "weapon_detector": f"{Path(args.weights).name} @ imgsz {args.imgsz}{tta}"
+                          + (f" + zoom {args.zoom} @ {args.zoom_imgsz}" if zoom_modes else "")
+                          + (" +flip" if zoom_modes and args.zoom_flip else "") + " (replayed)"}
         dst.parent.mkdir(parents=True, exist_ok=True)
         dst.write_text(json.dumps(doc))
         # let run_full_pipeline.py --reevaluate score the replay like any recording (timings are the original run's)

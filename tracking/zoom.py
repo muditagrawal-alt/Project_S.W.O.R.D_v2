@@ -74,18 +74,23 @@ def from_allowed_window(box, persons: Sequence[dict], frame_shape, cfg: ZoomConf
 
 
 def detect_in_windows(model, frame: np.ndarray, windows, imgsz: int = 640, conf: float = 0.1, device=None,
-                      drop_border: bool = True):
-    """Run `model` (Ultralytics) on each crop; return (boxes[N,4], scores[N], cls[N]) in frame coordinates."""
+                      drop_border: bool = True, flip: bool = False):
+    """Run `model` (Ultralytics) on each crop; return (boxes[N,4], scores[N], cls[N]) in frame coordinates. flip:
+    also each horizontally flipped crop (test-time augmentation; overlapping boxes are left to merge_detections)."""
     if not windows:
         return np.zeros((0, 4)), np.zeros(0), np.zeros(0, dtype=int)
     H, W = frame.shape[:2]
     crops = [frame[y1:y2, x1:x2] for x1, y1, x2, y2 in windows]
-    results = model.predict(crops, imgsz=imgsz, conf=conf, device=device, verbose=False)
+    flips = [np.ascontiguousarray(c[:, ::-1]) for c in crops] if flip else []
+    results = model.predict(crops + flips, imgsz=imgsz, conf=conf, device=device, verbose=False)
     boxes, scores, cls = [], [], []
-    for (x1, y1, x2, y2), r in zip(windows, results):
+    for k, r in enumerate(results):
+        x1, y1, x2, y2 = windows[k % len(windows)]
         b = r.boxes.xyxy.cpu().numpy()
         s = r.boxes.conf.cpu().numpy()
         c = r.boxes.cls.cpu().numpy().astype(int)
+        if k >= len(windows) and len(b):   # flipped crop: back to crop coordinates
+            b = np.stack([(x2 - x1) - b[:, 2], b[:, 1], (x2 - x1) - b[:, 0], b[:, 3]], 1)
         if drop_border and len(b):
             cw, ch, tol = x2 - x1, y2 - y1, 2.0
             cut = (((b[:, 0] <= tol) & (x1 > 0)) | ((b[:, 1] <= tol) & (y1 > 0))
@@ -106,6 +111,22 @@ def _iou(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     inter = ix * iy
     area = lambda x: (x[:, 2] - x[:, 0]) * (x[:, 3] - x[:, 1])  # noqa: E731
     return inter / (area(a)[:, None] + area(b)[None, :] - inter + 1e-9)
+
+
+def detect_full_frame(model, frame: np.ndarray, imgsz: int = 640, extra_sizes: Sequence[int] = (), flip: bool = False,
+                      conf: float = 0.1, device=None):
+    """Full-frame detections at imgsz, merged (merge_detections) with test-time augmentation passes: the frame at
+    the extra_sizes and, if flip, the horizontally flipped frame at every size. Returns (boxes[N,4], scores[N], cls[N])."""
+    W, parts = frame.shape[1], []
+    for sz in (imgsz, *extra_sizes):
+        for flipped in ((False, True) if flip else (False,)):
+            x = np.ascontiguousarray(frame[:, ::-1]) if flipped else frame
+            r = model.predict(x, imgsz=sz, conf=conf, device=device, verbose=False)[0]
+            b = r.boxes.xyxy.cpu().numpy()
+            if flipped and len(b):
+                b = np.stack([W - b[:, 2], b[:, 1], W - b[:, 0], b[:, 3]], 1)
+            parts.append((b, r.boxes.conf.cpu().numpy(), r.boxes.cls.cpu().numpy().astype(int)))
+    return merge_detections(parts) if len(parts) > 1 else parts[0]
 
 
 def merge_detections(parts: Sequence[Tuple[np.ndarray, np.ndarray, np.ndarray]], iou_thr: float = 0.5,

@@ -14,13 +14,15 @@ def test_builtin_and_file_profiles(tmp_path, monkeypatch):
     f.write_text(json.dumps({"default": "x", "profiles": {"x": {"weapon_model": "weights/det.pt", "weapon_imgsz": 1280,
                                                                  "weapon_zoom": ["hands"], "zoom_min_score": 0.3,
                                                                  "zoom_min_window": 96, "weapon_max_area": 0.125,
+                                                                 "weapon_tta_scales": [960], "weapon_tta_flip": True,
                                                                  "fusion": {"w_event": 0.6, "hold_s": 1.0}}}}))
     monkeypatch.setattr(P, "PROFILES_FILE", f)
     monkeypatch.setattr(P, "PROJECT_ROOT", tmp_path)
     assert set(P.list_profiles()) == {"original", "x"} and P.default_profile() == "x"
     kw = P.system_kwargs("x")
     assert kw["weapon_imgsz"] == 1280 and kw["weapon_zoom"] == ("hands",) and kw["zoom_min_score"] == 0.3
-    assert kw["zoom_min_window"] == 96 and kw["weapon_max_area"] == 0.125
+    assert kw["zoom_min_window"] == 96 and kw["weapon_max_area"] == 0.125 and kw["weapon_tta_scales"] == (960,)
+    assert kw["weapon_tta_flip"] is True and "zoom_flip" not in kw
     cfg = P.fusion_config("x", fps=2.0)
     assert cfg.w_event == 0.6 and cfg.hold_s == 1.0 and cfg.grace_s > 1.0   # fps adaptation still applied
     with pytest.raises(FileNotFoundError):
@@ -38,11 +40,12 @@ def test_installer_maps_tuned_filters_out_of_fusion(tmp_path):
     (tmp_path / "det.pt").write_bytes(b"x")
     (tmp_path / "w").mkdir()
     subprocess.run([sys.executable, str(P.PROJECT_ROOT / "research/tools/integration/install_profile.py"), "--name", "t",
-                    "--weights", str(tmp_path / "det.pt"), "--weights-name", "det.pt", "--zoom", "hands",
+                    "--weights", str(tmp_path / "det.pt"), "--weights-name", "det.pt", "--zoom", "hands", "--tta-scales", "960", "--zoom-flip",
                     "--tuning", str(tuning), "--weights-dir", str(tmp_path / "w"), "--profiles-file", str(tmp_path / "p.json")],
                    check=True, capture_output=True)
     prof = json.loads((tmp_path / "p.json").read_text())["profiles"]["t"]
     assert prof["zoom_min_score"] == 0.3 and prof["weapon_max_area"] == 0.085 and prof["zoom_min_window"] == 96
+    assert prof["weapon_tta_scales"] == [960] and prof["zoom_flip"] is True and "weapon_tta_flip" not in prof
     assert prof["fusion"] == {"w_susp": 0.4, "w_event": 0.6, "persist_s": 1.0, "hold_s": 1.0}
     assert "det.pt" in json.loads((tmp_path / "w" / "provenance.json").read_text())
 

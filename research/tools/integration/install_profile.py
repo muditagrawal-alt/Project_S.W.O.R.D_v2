@@ -39,6 +39,10 @@ def main():
     ap.add_argument("--weights", required=True)
     ap.add_argument("--weights-name", required=True, help="file name under weights/")
     ap.add_argument("--imgsz", type=int, default=1280)
+    ap.add_argument("--tta-scales", nargs="*", type=int, default=[], help="extra full-frame sizes (multi-scale test-time "
+                                                                         "augmentation, tracking/zoom.py)")
+    ap.add_argument("--tta-flip", action="store_true", help="also detect the horizontally flipped full frame")
+    ap.add_argument("--zoom-flip", action="store_true", help="also detect the horizontally flipped zoom crops")
     ap.add_argument("--zoom", default="", help="'', person, hands, person+hands")
     ap.add_argument("--zoom-min-score", type=float, default=None)
     ap.add_argument("--tuning", help="tune_rules.py results.json: take zoom_min_score and rule parameters from 'selected'")
@@ -46,6 +50,7 @@ def main():
                                               "(default: the first budget)")
     ap.add_argument("--verifier", help="second-stage verifier weights (copied to weights/); its fusion mode and minimum "
                                        "come from --tuning")
+    ap.add_argument("--verifier-name", help="file name under weights/ for --verifier (default: its own file name)")
     ap.add_argument("--phase2", default=None, help="Phase 2 module (pipeline/profiles.py PHASE2_KINDS)")
     ap.add_argument("--track-seconds", type=float, default=None, help="Phase 2 lost-track time")
     ap.add_argument("--description", default="")
@@ -75,6 +80,8 @@ def main():
         verify_mode, verify_min = sel.pop("verify_mode", "none"), sel.pop("verify_min", 0.0)
         fusion = sel
     profile = {"description": args.description, "weapon_model": f"weights/{args.weights_name}", "weapon_imgsz": args.imgsz,
+               **({"weapon_tta_scales": args.tta_scales} if args.tta_scales else {}),
+               **({"weapon_tta_flip": True} if args.tta_flip else {}), **({"zoom_flip": True} if args.zoom_flip else {}),
                "weapon_zoom": [m for m in args.zoom.split("+") if m], "zoom_min_score": zmin or 0.0,
                "zoom_min_window": int(min_window), "weapon_max_area": float(max_area), "fusion": fusion,
                **({"phase2": args.phase2} if args.phase2 else {}),
@@ -83,12 +90,13 @@ def main():
                "installed": datetime.now().isoformat(timespec="seconds")}
     if args.verifier and (verify_mode != "none" or verify_min > 0):
         vsrc = Path(args.verifier).resolve()
-        vdst = Path(args.weights_dir) / vsrc.name
+        vname = args.verifier_name or vsrc.name
+        vdst = Path(args.weights_dir) / vname
         if vsrc != vdst.resolve():
             shutil.copy2(vsrc, vdst)
-        prov[vsrc.name] = {"source": str(vsrc), "sha256": sha256(vdst), "installed": datetime.now().isoformat(timespec="seconds")}
+        prov[vname] = {"source": str(vsrc), "sha256": sha256(vdst), "installed": datetime.now().isoformat(timespec="seconds")}
         provenance.write_text(json.dumps(prov, indent=2))
-        profile.update(weapon_verifier=f"weights/{vsrc.name}", verify_mode=verify_mode, verify_min=float(verify_min))
+        profile.update(weapon_verifier=f"weights/{vname}", verify_mode=verify_mode, verify_min=float(verify_min))
     profiles_file.parent.mkdir(parents=True, exist_ok=True)
     doc = json.loads(profiles_file.read_text()) if profiles_file.exists() else {"profiles": {}, "default": "original"}
     doc["profiles"][args.name] = profile

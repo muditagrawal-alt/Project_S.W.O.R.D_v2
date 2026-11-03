@@ -131,7 +131,8 @@ class SwordPipeline:
                  zones: list | None = None, homography=None, det_conf: float = 0.1, track_seconds: float = 1.5,
                  phase2=None, pose_device: str = "cpu", weapon_imgsz: int = 640, weapon_zoom: tuple = (),
                  zoom_imgsz: int = 640, zoom_min_score: float = 0.0, zoom_min_window: int = 0, weapon_max_area: float = 1.0,
-                 weapon_verifier: str | None = None, verify_mode: str = "geo", verify_min: float = 0.0):
+                 weapon_verifier: str | None = None, verify_mode: str = "geo", verify_min: float = 0.0,
+                 weapon_tta_scales: tuple = (), weapon_tta_flip: bool = False, zoom_flip: bool = False):
         from ultralytics import YOLO
 
         from tracking.interface import StandInPhase2
@@ -149,6 +150,10 @@ class SwordPipeline:
             self.weapon_det = YOLO(str(weapon_model))
         self.use_ensemble = use_ensemble
         self.weapon_imgsz = weapon_imgsz  # 640 = training size; CCTV weapons are tiny, larger sizes trade speed for recall
+        # test-time augmentation: the full frame is also detected at these sizes and, with weapon_tta_flip, flipped;
+        # zoom_flip also detects the flipped zoom crops. Everything is merged by NMS (tracking/zoom.py)
+        self.weapon_tta_scales = tuple(weapon_tta_scales or ())
+        self.weapon_tta_flip, self.zoom_flip = weapon_tta_flip, zoom_flip
         # person-zoom (tracking/zoom.py): also detect on enlarged crops around tracked people / hands
         self.weapon_zoom, self.zoom_imgsz, self.zoom_min_score = tuple(weapon_zoom or ()), zoom_imgsz, zoom_min_score
         self.zoom_min_window = zoom_min_window
@@ -161,8 +166,8 @@ class SwordPipeline:
             from tracking.verifier import WeaponVerifier
 
             self.verifier = WeaponVerifier(weapon_verifier, device=device)
-        if self.weapon_zoom and use_ensemble:
-            raise ValueError("person-zoom is implemented for single detectors, not the WBF ensemble")
+        if (self.weapon_zoom or self.weapon_tta_scales or weapon_tta_flip) and use_ensemble:
+            raise ValueError("person-zoom and test-time augmentation are implemented for single detectors, not the WBF ensemble")
         self.track_buffer = max(5, int(round(fps * track_seconds)))
         self.weapon_trk = ByteTrackWrapper(track_buffer=self.track_buffer)
         self.pose = None
@@ -179,8 +184,10 @@ class SwordPipeline:
         self.sources = {
             "phase2": getattr(self.phase2, "name", type(self.phase2).__name__),
             "weapon_detector": ("WBF ensemble (YOLO26s+YOLO26m+RT-DETR-L)" if use_ensemble else Path(weapon_model).name)
-                               + f" @ imgsz {weapon_imgsz}"
+                               + f" @ imgsz {weapon_imgsz}" + "".join(f"+{sz}" for sz in self.weapon_tta_scales)
+                               + (" +flip" if weapon_tta_flip else "")
                                + (f" + zoom {'+'.join(self.weapon_zoom)} @ {zoom_imgsz}" if self.weapon_zoom else "")
+                               + (" +flip" if self.weapon_zoom and zoom_flip else "")
                                + (f", boxes <= {weapon_max_area:.1%} of frame" if weapon_max_area < 1.0 else "")
                                + (f", verifier {Path(weapon_verifier).name} ({verify_mode})" if weapon_verifier else ""),
             "pose": "RTMPose-m body7 256x192 (rtmlib, top-down on tracked boxes)" if self.pose else None,
@@ -196,8 +203,10 @@ class SwordPipeline:
         if self.use_ensemble:
             r = self.weapon_det.predict(frame, img_size=self.weapon_imgsz)[0]
             return r["boxes"], r["scores"], r["labels"]
-        r = self.weapon_det.predict(frame, imgsz=self.weapon_imgsz, conf=self.det_conf, device=self.device, verbose=False)[0]
-        return r.boxes.xyxy.cpu().numpy(), r.boxes.conf.cpu().numpy(), r.boxes.cls.cpu().numpy().astype(int)
+        from tracking.zoom import detect_full_frame
+
+        return detect_full_frame(self.weapon_det, frame, self.weapon_imgsz, self.weapon_tta_scales, self.weapon_tta_flip,
+                                 conf=self.det_conf, device=self.device)
 
     def step(self, frame: np.ndarray, frame_idx: int, t: float) -> dict:
         t0 = time.perf_counter()
@@ -229,7 +238,8 @@ class SwordPipeline:
 
             windows = zoom_windows(persons, frame.shape, ZoomConfig(modes=self.weapon_zoom, min_window=self.zoom_min_window))
             zb, zs, zc = detect_in_windows(self.weapon_det, frame, windows, imgsz=self.zoom_imgsz,
-                                           conf=max(self.det_conf, self.zoom_min_score), device=self.device)
+                                           conf=max(self.det_conf, self.zoom_min_score), device=self.device,
+                                           flip=self.zoom_flip)
             wb, ws, wc, origin = merge_detections([(wb, ws, wc), (zb, zs, zc)], return_source=True)
             src = ["full" if o == 0 else "zoom" for o in origin]
         if self.weapon_max_area < 1.0 and len(wb):

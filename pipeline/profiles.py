@@ -48,6 +48,8 @@ def system_kwargs(name: str) -> dict:
     return {"weapon_model": str(model), "weapon_imgsz": int(p.get("weapon_imgsz", 640)),
             "weapon_zoom": tuple(p.get("weapon_zoom", ())), "zoom_min_score": float(p.get("zoom_min_score", 0.0)),
             "zoom_min_window": int(p.get("zoom_min_window", 0)), "weapon_max_area": float(p.get("weapon_max_area", 1.0)),
+            **({"weapon_tta_scales": tuple(int(v) for v in p["weapon_tta_scales"])} if p.get("weapon_tta_scales") else {}),
+            **{k: True for k in ("weapon_tta_flip", "zoom_flip") if p.get(k)},
             **({"weapon_verifier": str(PROJECT_ROOT / p["weapon_verifier"]), "verify_mode": p.get("verify_mode", "geo"),
                 "verify_min": float(p.get("verify_min", 0.0))} if p.get("weapon_verifier") else {})}
 

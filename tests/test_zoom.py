@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from tracking.zoom import ZoomConfig, detect_in_windows, merge_detections, zoom_windows
+from tracking.zoom import ZoomConfig, detect_full_frame, detect_in_windows, merge_detections, zoom_windows
 
 
 def person(bbox, wrists=((150, 200), (170, 200)), score=0.9):
@@ -50,6 +50,33 @@ def test_detections_map_back_and_border_cuts_are_dropped():
     # ...but kept when that crop edge is the frame edge
     b, _, _ = detect_in_windows(FakeModel((250, 20, 300, 60)), frame, [(1620, 300, 1920, 600)])
     assert len(b) == 1
+    # flip: the same box in the flipped 300 px crop (x 10..40) is x 260..290 of the crop, i.e. 760..790 in the frame
+    b, s, _ = detect_in_windows(FakeModel((10, 20, 40, 60)), frame, [(500, 300, 800, 600)], flip=True)
+    assert b.tolist() == [[510, 320, 540, 360], [760, 320, 790, 360]] and s.tolist() == [0.8, 0.8]
+
+
+def test_full_frame_tta_unflips_and_merges_scales():
+    class Model:   # a box on the left third of whatever image it sees; the score depends on the input size
+        sizes = []
+
+        def predict(self, img, imgsz, **kw):
+            self.sizes.append(imgsz)
+            box = np.array([[10.0, 20.0, 40.0, 60.0]])
+            if img[0, 0, 0] == 7:          # the flipped frame (marker pixel moved to the left edge)
+                box = np.array([[60.0, 20.0, 90.0, 60.0]])
+            t = lambda a: SimpleNamespace(cpu=lambda: SimpleNamespace(numpy=lambda: a))  # noqa: E731
+            return [SimpleNamespace(boxes=SimpleNamespace(xyxy=t(box), conf=t(np.array([imgsz / 2000])), cls=t(np.array([0]))))]
+
+    frame = np.zeros((100, 100, 3), np.uint8)
+    frame[0, -1] = 7
+    m = Model()
+    b, s, _ = detect_full_frame(m, frame, 1280)
+    assert m.sizes == [1280] and b.tolist() == [[10, 20, 40, 60]]
+    m.sizes = []
+    b, s, _ = detect_full_frame(m, frame, 1280, extra_sizes=(960,), flip=True)
+    assert m.sizes == [1280, 1280, 960, 960]
+    # the flipped frame's box (60..90) maps back to 10..40 and merges; the highest score (1280 px) is kept
+    assert b.tolist() == [[10, 20, 40, 60]] and s.tolist() == [0.64]
 
 
 def test_merge_keeps_highest_and_separate_classes():
@@ -134,7 +161,8 @@ def test_live_step_applies_box_size_limit_and_min_window():
     p = SwordPipeline.__new__(SwordPipeline)
     p.phase2, p.pose, p.weapon_det, p.use_ensemble, p.device, p.det_conf = Phase2(), None, Model(), False, "cpu", 0.1
     p.weapon_imgsz, p.zoom_imgsz, p.zoom_min_score, p.weapon_trk = 1280, 640, 0.0, ByteTrackWrapper(track_buffer=5)
-    p.weapon_zoom, p.zoom_min_window, p.weapon_max_area, p.verifier = ("person",), 0, 1.0, None
+    p.weapon_zoom, p.zoom_min_window, p.weapon_max_area, p.verifier, p.weapon_tta_scales = ("person",), 0, 1.0, None, ()
+    p.weapon_tta_flip = p.zoom_flip = False
     frame = np.zeros((1080, 1920, 3), np.uint8)
     assert len(p.step(frame, 0, 0.0)["weapon_detections"]) == 3        # big + small + one zoom box
     p.zoom_min_window, p.weapon_max_area = 96, 0.125                       # person window 75 px < 96: no crops
