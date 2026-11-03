@@ -83,3 +83,17 @@ def test_linear_resampling_interpolates_visible_joints_only():
     kk, ss = resample_linear(ts, k, s, np.array([0.25, 0.5, 0.75]))
     np.testing.assert_allclose(kk[:, 1, 0], [2.5, 5.0, 7.5])
     assert kk[0, 0, 0] == 0.0 and kk[2, 0, 0] == 10.0 and ss[2, 0] == 0.0
+
+
+def test_weapon_head_probability(tmp_path):
+    from action_recognition.weapon_head import WeaponActionHead, save_head
+
+    coef = np.zeros(120)
+    coef[3] = 1.0
+    save_head(tmp_path / "h.json", mean=np.zeros(120), std=np.ones(120), coef=coef, intercept=0.0, version="test")
+    h = WeaponActionHead(tmp_path / "h.json")
+    p = np.full(120, 1e-3)
+    p[3] = 0.9
+    assert h.prob(p) == pytest.approx(1 / (1 + np.exp(-np.log(0.9))))
+    p[3] = 1e-3
+    assert h.prob(p) < 0.01

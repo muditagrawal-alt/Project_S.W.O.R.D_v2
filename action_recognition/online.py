@@ -42,7 +42,7 @@ class OnlineActionRecognizer:
                  device: str = "cpu", window_s: float = 3.0, stride_s: float = 1.0, min_window_s: float = 1.5,
                  clip_len: int = 48, min_frames: int = 4, min_avg_conf: float = 0.3, pair_nearest: bool = True,
                  flip_test: bool = True, stale_s: float = 3.0, batch: int = 8, half: Optional[bool] = None,
-                 temporal: str = "linear"):
+                 temporal: str = "linear", weapon_head="auto"):
         self.device = torch.device(device)
         self.model = load_slowonly_weights(ResNet3dSlowOnly(), checkpoint, device="cpu").to(self.device).eval()
         # fp16 on GPU: ~20% faster on Apple MPS; max probability difference vs fp32 0.0007, identical top-1 (tested)
@@ -62,6 +62,10 @@ class OnlineActionRecognizer:
         if temporal not in ("nearest", "linear"):
             raise ValueError(temporal)
         self.temporal = temporal
+        # learned weapon-action head (action_recognition/weapon_head.py): "auto" = use weights/ if trained, None = off
+        from action_recognition.weapon_head import WeaponActionHead, load_default
+
+        self.weapon_head = load_default() if weapon_head == "auto" else (WeaponActionHead(weapon_head) if weapon_head else None)
         self.buf: Dict[int, deque] = defaultdict(deque)   # tid -> (t, kpts[17,2], scores[17])
         self.last_run: Dict[int, float] = {}
         self.latest: Dict[int, Dict[str, Any]] = {}
@@ -168,6 +172,8 @@ class OnlineActionRecognizer:
                 r = map_predictions_to_threats(p, self.action_map, kps=k, scores=sc)
                 r.update(t=round(float(t), 3), window_start=round(float(ts[0]), 3), window_end=round(float(ts[-1]), 3),
                          n_frames=int(len(ts)), partner_track_id=partner, probabilities_120=np.round(p, 4).tolist())
+                if self.weapon_head is not None:
+                    r["weapon_action_prob"] = round(self.weapon_head.prob(p), 4)
                 out.append((tid, r))
         return out
 

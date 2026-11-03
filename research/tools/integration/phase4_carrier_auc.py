@@ -49,7 +49,12 @@ def main():
     ap.add_argument("--recording", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--n-boot", type=int, default=1000)
+    ap.add_argument("--weapon-head", help="also score the learned weapon-action head (JSON) on every estimate")
     args = ap.parse_args()
+    global HEAD
+    if args.weapon_head:
+        from action_recognition.weapon_head import WeaponActionHead
+        HEAD = WeaponActionHead(Path(args.weapon_head))
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     rows = []
@@ -67,6 +72,9 @@ def main():
     print(json.dumps(res, indent=2))
 
 
+HEAD = None   # optional WeaponActionHead (set by --weapon-head): adds the learned weapon-action score
+
+
 def carrier_rows(segment: str, frames: list, gt_frames: list) -> list:
     """One row per PoseC3D estimate: group probabilities + whether that person carries a GT weapon in the window."""
     carriers = []
@@ -81,8 +89,11 @@ def carrier_rows(segment: str, frames: list, gt_frames: list) -> list:
             m = (times >= a["window_start"] - 1e-6) & (times <= a["window_end"] + 1e-6)
             label = any(tid in carriers[i] for i in np.nonzero(m)[0])
             gp = a.get("group_probs", {})
-            rows.append({"segment": segment, "camera": segment.split("-")[0], "track_id": tid, "t": a["t"],
-                         "carrier": bool(label), **{k: float(gp.get(k, 0.0)) for k in GROUPS}, "top1": a.get("top1_name")})
+            row = {"segment": segment, "camera": segment.split("-")[0], "track_id": tid, "t": a["t"],
+                   "carrier": bool(label), **{k: float(gp.get(k, 0.0)) for k in GROUPS}, "top1": a.get("top1_name")}
+            if HEAD is not None and a.get("probabilities_120"):
+                row["weapon_action_prob"] = HEAD.prob(a["probabilities_120"])
+            rows.append(row)
     return rows
 
 
@@ -91,6 +102,8 @@ def auc_report(rows: list, n_boot: int = 1000) -> dict:
     cfg = FusionConfig()
     res = {"estimates": len(rows), "carrier_estimates": int(sum(y)), "auc": {}, "auc_ci95": {}, "by_camera": {}}
     scores = {k: [r[k] for r in rows] for k in GROUPS}
+    if rows and "weapon_action_prob" in rows[0]:
+        scores["weapon_action_prob"] = [r.get("weapon_action_prob", 0.0) for r in rows]
     scores["max_of_groups"] = [max(r[k] for k in GROUPS) for r in rows]
     by_seg = defaultdict(list)
     for i, r in enumerate(rows):

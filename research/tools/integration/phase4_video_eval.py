@@ -54,8 +54,15 @@ def replay_subsampled(doc: dict, every: int, temporal: str, rec) -> list:
     return out
 
 
+HEAD = None   # optional WeaponActionHead (--weapon-head)
+
+
 def video_scores(est: list) -> dict:
     s = {}
+    if HEAD is not None:
+        v = [HEAD.prob(e["probabilities_120"]) for e in est if e.get("probabilities_120")]
+        s["max_weapon_action_prob"] = max(v) if v else 0.0
+        s["mean_weapon_action_prob"] = float(np.mean(v)) if v else 0.0
     for g in GROUPS:
         v = [e["group_probs"].get(g, 0.0) for e in est]
         s[f"max_{g}"] = max(v) if v else 0.0
@@ -144,15 +151,20 @@ def ucf(rec_dir: Path) -> dict:
         rows.append({"video": doc["video"], "category": cat, **video_scores(est)})
         for e in est:
             inside = any(a <= e["window_end"] <= b for a, b in segs)
-            windows[cat].append((inside, e["group_probs"]))
+            gp = dict(e["group_probs"])
+            if HEAD is not None and e.get("probabilities_120"):
+                gp["weapon_action_prob"] = HEAD.prob(e["probabilities_120"])
+            windows[cat].append((inside, gp))
     res = {"videos": len(rows), "comparisons": {}}
-    for cname, pos, g in (("shooting_vs_normal", {"Shooting"}, "prob_WEAPON_THREAT"),
-                          ("robbery_vs_normal", {"Robbery"}, "prob_WEAPON_THREAT"),
-                          ("fight_assault_vs_normal", {"Fighting", "Assault"}, "prob_VIOLENT_ATTACK")):
+    tests = [("shooting_vs_normal", {"Shooting"}, "prob_WEAPON_THREAT"), ("robbery_vs_normal", {"Robbery"}, "prob_WEAPON_THREAT"),
+             ("fight_assault_vs_normal", {"Fighting", "Assault"}, "prob_VIOLENT_ATTACK")]
+    if HEAD is not None:
+        tests += [("shooting_vs_normal", {"Shooting"}, "weapon_action_prob"), ("robbery_vs_normal", {"Robbery"}, "weapon_action_prob")]
+    for cname, pos, g in tests:
         rs = [r for r in rows if r["category"] in pos | {"Normal"}]
         if rs:
             res["comparisons"][f"{cname}|video|max_{g}"] = boot_auc([r[f"max_{g}"] for r in rs], [r["category"] in pos for r in rs])
-            inside = [(i, p[g]) for c in pos for i, p in windows[c]]
+            inside = [(i, p[g]) for c in pos for i, p in windows[c] if g in p]
             if inside:
                 res["comparisons"][f"{cname}|windows_inside_vs_outside_incident|{g}"] = boot_auc([p for _, p in inside], [i for i, _ in inside])
     res["per_video"] = rows
@@ -176,7 +188,12 @@ def main():
     ap.add_argument("--set", required=True, choices=["mendeley", "ucf"])
     ap.add_argument("--every-2fps", type=int, default=6, help="subsample factor of the recording for the ~2-fps variant")
     ap.add_argument("--device", default="mps")
+    ap.add_argument("--weapon-head", help="also score the learned weapon-action head (JSON)")
     args = ap.parse_args()
+    global HEAD
+    if args.weapon_head:
+        from action_recognition.weapon_head import WeaponActionHead
+        HEAD = WeaponActionHead(Path(args.weapon_head))
     rec = Path(args.recording)
     res = mendeley(rec, args.every_2fps, args.device) if args.set == "mendeley" else ucf(rec)
     out = rec / f"phase4_eval_{args.set}.json"
