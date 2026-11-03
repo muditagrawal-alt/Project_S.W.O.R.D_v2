@@ -173,7 +173,7 @@ class ZoneDwellEngine:
                         # Zone state changed
                         if current_zone is not None and detected_zone is None:
                             # ZONE_EXIT
-                            dwell_s = (obs.frame_id - zone_entry_frame) / fps if zone_entry_frame else 0.0
+                            dwell_s = (obs.frame_id - zone_entry_frame) / fps if zone_entry_frame is not None else 0.0
                             all_events.append(ZoneEvent(
                                 video_name=obs.video_name,
                                 object_type=obj_type,
@@ -223,7 +223,7 @@ class ZoneDwellEngine:
 
                         elif current_zone is not None and detected_zone is not None:
                             # ZONE_TRANSITION (directly from Zone A to Zone B)
-                            dwell_s = (obs.frame_id - zone_entry_frame) / fps if zone_entry_frame else 0.0
+                            dwell_s = (obs.frame_id - zone_entry_frame) / fps if zone_entry_frame is not None else 0.0
                             all_events.append(ZoneEvent(
                                 video_name=obs.video_name,
                                 object_type=obj_type,

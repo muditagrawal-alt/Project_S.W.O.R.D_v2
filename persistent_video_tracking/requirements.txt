@@ -1,7 +1,7 @@
 # Core Deep Learning & Computer Vision
 torch>=2.0.0
 ultralytics>=8.3.0
-supervision>=0.18.0
+supervision>=0.18.0,<0.31  # sv.ByteTrack was removed in 0.31.0
 opencv-python>=4.8.0
 
 # Scientific Computing & Data Processing

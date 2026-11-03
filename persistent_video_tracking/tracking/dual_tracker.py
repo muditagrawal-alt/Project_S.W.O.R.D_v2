@@ -35,12 +35,21 @@ class DualStreamTracker:
         person_matching_thr: float = 0.75,
         weapon_smoothing_window: int = 15,
         weapon_class_names: Optional[Dict[int, str]] = None,
+        frame_rate: float = 30.0,
+        update_on_empty: bool = True,
     ):
+        # lost_track_buffer counts frames at 30 fps; ByteTrack rescales it by frame_rate / 30, so the source FPS must
+        # be passed for the buffer to mean the same time span at any frame rate (30 frames = 1 s).
+        # update_on_empty: also update the trackers on frames without detections, so lost tracks age and expire.
+        # False reproduces the original behaviour (lost tracks were frozen during empty frames).
+        self.update_on_empty = bool(update_on_empty)
+
         # 1. Weapon ByteTrack Instance
         self.weapon_tracker = sv.ByteTrack(
             track_activation_threshold=float(weapon_activation_thr),
             lost_track_buffer=int(weapon_lost_buffer),
             minimum_matching_threshold=float(weapon_matching_thr),
+            frame_rate=int(round(frame_rate)),
         )
 
         # 2. Person ByteTrack Instance (Completely separate namespace and internal state)
@@ -48,6 +57,7 @@ class DualStreamTracker:
             track_activation_threshold=float(person_activation_thr),
             lost_track_buffer=int(person_lost_buffer),
             minimum_matching_threshold=float(person_matching_thr),
+            frame_rate=int(round(frame_rate)),
         )
 
         self.weapon_class_names = weapon_class_names or {}
@@ -84,7 +94,7 @@ class DualStreamTracker:
 
         # --- A. WEAPON TRACKING STREAM ---
         tracked_weapons = sv.Detections.empty()
-        if len(weapon_detections) > 0:
+        if len(weapon_detections) > 0 or self.update_on_empty:
             tracked_weapons = self.weapon_tracker.update_with_detections(weapon_detections)
 
         if len(tracked_weapons) > 0 and tracked_weapons.tracker_id is not None:
@@ -126,7 +136,7 @@ class DualStreamTracker:
 
         # --- B. PERSON TRACKING STREAM ---
         tracked_persons = sv.Detections.empty()
-        if len(person_detections) > 0:
+        if len(person_detections) > 0 or self.update_on_empty:
             tracked_persons = self.person_tracker.update_with_detections(person_detections)
 
         if len(tracked_persons) > 0 and tracked_persons.tracker_id is not None:

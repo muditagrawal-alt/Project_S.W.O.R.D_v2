@@ -41,7 +41,7 @@ class PersonDetector:
     def __init__(
         self,
         weights_path: str = "yolov8n.pt",
-        conf_thr: float = 0.35,
+        conf_thr: float = 0.10,
         img_size: int = 640,
         device: Optional[str] = "cpu",
         coco_person_class_id: int = 0,

@@ -34,13 +34,13 @@ try:
     from ..detection import WeaponEnsembleDetector, PersonDetector
     from ..tracking import DualStreamTracker, TrackObservation, TRACKING_CSV_COLUMNS
     from ..analytics import KinematicsEngine, ZoneDwellEngine
-    from ..association import SpatioTemporalAssociator
+    from ..association import SpatioTemporalAssociator, AssociationRecord
     from ..visualization import VideoVisualizer
 except (ImportError, ValueError):
     from persistent_video_tracking.detection import WeaponEnsembleDetector, PersonDetector
     from persistent_video_tracking.tracking import DualStreamTracker, TrackObservation, TRACKING_CSV_COLUMNS
     from persistent_video_tracking.analytics import KinematicsEngine, ZoneDwellEngine
-    from persistent_video_tracking.association import SpatioTemporalAssociator
+    from persistent_video_tracking.association import SpatioTemporalAssociator, AssociationRecord
     from persistent_video_tracking.visualization import VideoVisualizer
 
 
@@ -166,7 +166,7 @@ def run_pipeline(
 
     person_detector = PersonDetector(
         weights_path=models_cfg.get("person", "yolov8n.pt"),
-        conf_thr=float(p_det_cfg.get("conf_threshold", 0.35)),
+        conf_thr=float(p_det_cfg.get("conf_threshold", 0.10)),
         img_size=int(det_cfg.get("img_size", 640)),
         device=device,
         coco_person_class_id=int(p_det_cfg.get("coco_person_class_id", 0)),
@@ -185,6 +185,7 @@ def run_pipeline(
         person_lost_buffer=int(p_tr.get("lost_track_buffer", 30)),
         person_matching_thr=float(p_tr.get("minimum_matching_threshold", 0.75)),
         weapon_class_names=weapon_detector.class_names,
+        frame_rate=fps,
     )
 
     # 5. Initialize Association & Zone Engines

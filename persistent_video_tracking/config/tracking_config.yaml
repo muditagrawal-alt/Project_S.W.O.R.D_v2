@@ -22,7 +22,9 @@ detection:
     fusion_mode: "wbf"        # "wbf" or "nms"
     conf_type: "avg"          # "avg" or "max"
   person:
-    conf_threshold: 0.35      # Person detection confidence threshold
+    conf_threshold: 0.10      # Keep low-score boxes: ByteTrack uses 0.1..activation for its second association
+                              # (occluded people); new tracks still need activation + 0.1. Was 0.35, which left
+                              # that pool empty.
     coco_person_class_id: 0
 
 # ByteTrack Parameters (Separate tracker instances for weapon & person)

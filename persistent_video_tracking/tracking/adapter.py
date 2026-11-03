@@ -57,6 +57,7 @@ class PersistentVideoTracker:
         device: Optional[str] = None,
         frame_width: Optional[int] = None,
         frame_height: Optional[int] = None,
+        fps: float = 30.0,
     ):
         if config_dict is not None:
             self.cfg = config_dict
@@ -93,7 +94,7 @@ class PersistentVideoTracker:
         # 2. Person Detector
         self.person_detector = PersonDetector(
             weights_path=models_cfg.get("person", "yolov8n.pt"),
-            conf_thr=float(p_det_cfg.get("conf_threshold", 0.35)),
+            conf_thr=float(p_det_cfg.get("conf_threshold", 0.10)),
             img_size=int(det_cfg.get("img_size", 640)),
             device=dev,
             coco_person_class_id=int(p_det_cfg.get("coco_person_class_id", 0)),
@@ -112,6 +113,7 @@ class PersistentVideoTracker:
             person_lost_buffer=int(p_tr.get("lost_track_buffer", 30)),
             person_matching_thr=float(p_tr.get("minimum_matching_threshold", 0.75)),
             weapon_class_names=self.weapon_detector.class_names,
+            frame_rate=fps,
         )
 
         # 4. Association Engine
