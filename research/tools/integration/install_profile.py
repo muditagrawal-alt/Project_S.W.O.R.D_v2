@@ -44,6 +44,10 @@ def main():
     ap.add_argument("--tuning", help="tune_rules.py results.json: take zoom_min_score and rule parameters from 'selected'")
     ap.add_argument("--operating-point", help="with --tuning: the false-alarm budget of the operating point to install "
                                               "(default: the first budget)")
+    ap.add_argument("--verifier", help="second-stage verifier weights (copied to weights/); its fusion mode and minimum "
+                                       "come from --tuning")
+    ap.add_argument("--phase2", default=None, help="Phase 2 module (pipeline/profiles.py PHASE2_KINDS)")
+    ap.add_argument("--track-seconds", type=float, default=None, help="Phase 2 lost-track time")
     ap.add_argument("--description", default="")
     ap.add_argument("--evaluated-in", default="")
     ap.add_argument("--default", action="store_true", help="make this the default profile")
@@ -60,7 +64,7 @@ def main():
     prov[args.weights_name] = {"source": str(src.relative_to(PROJECT_ROOT)) if src.is_relative_to(PROJECT_ROOT) else str(src),
                                "sha256": sha256(dst), "installed": datetime.now().isoformat(timespec="seconds")}
     provenance.write_text(json.dumps(prov, indent=2))
-    fusion, zmin, max_area, min_window = {}, args.zoom_min_score, 1.0, 0
+    fusion, zmin, max_area, min_window, verify_mode, verify_min = {}, args.zoom_min_score, 1.0, 0, "none", 0.0
     if args.tuning:
         tun = json.loads(Path(args.tuning).read_text())
         sel = dict((tun["operating_points"][args.operating_point] if args.operating_point else tun)["selected"]["params"])
@@ -68,12 +72,23 @@ def main():
         zmin = tuned_zmin if zmin is None else zmin
         max_area = sel.pop("max_area_frac", 1.0)
         min_window = sel.pop("zoom_min_window", 0)
+        verify_mode, verify_min = sel.pop("verify_mode", "none"), sel.pop("verify_min", 0.0)
         fusion = sel
     profile = {"description": args.description, "weapon_model": f"weights/{args.weights_name}", "weapon_imgsz": args.imgsz,
                "weapon_zoom": [m for m in args.zoom.split("+") if m], "zoom_min_score": zmin or 0.0,
                "zoom_min_window": int(min_window), "weapon_max_area": float(max_area), "fusion": fusion,
+               **({"phase2": args.phase2} if args.phase2 else {}),
+               **({"track_seconds": args.track_seconds} if args.track_seconds else {}),
                "evaluated_in": args.evaluated_in, "tuning": args.tuning or None, "operating_point": args.operating_point,
                "installed": datetime.now().isoformat(timespec="seconds")}
+    if args.verifier and (verify_mode != "none" or verify_min > 0):
+        vsrc = Path(args.verifier).resolve()
+        vdst = Path(args.weights_dir) / vsrc.name
+        if vsrc != vdst.resolve():
+            shutil.copy2(vsrc, vdst)
+        prov[vsrc.name] = {"source": str(vsrc), "sha256": sha256(vdst), "installed": datetime.now().isoformat(timespec="seconds")}
+        provenance.write_text(json.dumps(prov, indent=2))
+        profile.update(weapon_verifier=f"weights/{vsrc.name}", verify_mode=verify_mode, verify_min=float(verify_min))
     profiles_file.parent.mkdir(parents=True, exist_ok=True)
     doc = json.loads(profiles_file.read_text()) if profiles_file.exists() else {"profiles": {}, "default": "original"}
     doc["profiles"][args.name] = profile

@@ -47,7 +47,9 @@ def system_kwargs(name: str) -> dict:
         raise FileNotFoundError(f"profile {name!r}: weights not found: {model}")
     return {"weapon_model": str(model), "weapon_imgsz": int(p.get("weapon_imgsz", 640)),
             "weapon_zoom": tuple(p.get("weapon_zoom", ())), "zoom_min_score": float(p.get("zoom_min_score", 0.0)),
-            "zoom_min_window": int(p.get("zoom_min_window", 0)), "weapon_max_area": float(p.get("weapon_max_area", 1.0))}
+            "zoom_min_window": int(p.get("zoom_min_window", 0)), "weapon_max_area": float(p.get("weapon_max_area", 1.0)),
+            **({"weapon_verifier": str(PROJECT_ROOT / p["weapon_verifier"]), "verify_mode": p.get("verify_mode", "geo"),
+                "verify_min": float(p.get("verify_min", 0.0))} if p.get("weapon_verifier") else {})}
 
 
 def fusion_config(name: str, fps: float):
@@ -56,29 +58,39 @@ def fusion_config(name: str, fps: float):
     return FusionConfig.for_fps(fps, **list_profiles()[name].get("fusion", {}))
 
 
-PHASE2_KINDS = ("standin", "persistent", "persistent-legacy")
+PHASE2_KINDS = ("standin", "botsort", "persistent", "persistent-legacy")
 
 
-def make_phase2(kind: str, fps: float, device=None):
-    """Phase 2 module by name: None (SwordSystem's stand-in), the team's persistent_video_tracking package
-    (tracking/persistent_phase2.py), or that package as submitted (benchmarking only)."""
-    if kind == "standin":
-        return None
+def make_phase2(kind: str, fps: float, device=None, track_seconds: float | None = None):
+    """Phase 2 module by name: the stand-in (ByteTrack; None = SwordSystem's default instance), the stand-in with
+    BoT-SORT, the team's persistent_video_tracking package (tracking/persistent_phase2.py), or that package as
+    submitted (benchmarking only). track_seconds: how long a lost person is kept (stand-in and BoT-SORT)."""
     if kind not in PHASE2_KINDS:
         raise ValueError(f"unknown Phase 2 module {kind!r}; choose from {PHASE2_KINDS}")
-    from tracking.persistent_phase2 import PersistentPhase2
+    if kind == "standin" and track_seconds is None:
+        return None
     from tracking.pipeline import pick_device
 
-    return PersistentPhase2(fps, device=pick_device(device), legacy=kind == "persistent-legacy")
+    device = pick_device(device)
+    if kind in ("standin", "botsort"):
+        from tracking.interface import BoTSORTPhase2, StandInPhase2
+
+        return (StandInPhase2 if kind == "standin" else BoTSORTPhase2)(fps, device, track_seconds=track_seconds or 1.5)
+    from tracking.persistent_phase2 import PersistentPhase2
+
+    return PersistentPhase2(fps, device=device, legacy=kind == "persistent-legacy")
 
 
-def build_system(name: str, fps: float, phase2: str | None = None, **overrides):
-    """phase2: Phase 2 module name (PHASE2_KINDS); default: the profile's "phase2" entry, else the stand-in."""
+def build_system(name: str, fps: float, phase2: str | None = None, track_seconds: float | None = None, **overrides):
+    """phase2 / track_seconds: Phase 2 module (PHASE2_KINDS) and lost-track time; default: the profile's "phase2" and
+    "track_seconds" entries, else the stand-in with 1.5 s."""
     from pipeline.system import SwordSystem
 
     kw = system_kwargs(name) | overrides
     kw.setdefault("fusion_cfg", fusion_config(name, fps))
-    kind = phase2 or list_profiles()[name].get("phase2", "standin")
-    if kind != "standin":
-        kw["phase2"] = make_phase2(kind, fps, kw.get("device"))
+    prof = list_profiles()[name]
+    module = make_phase2(phase2 or prof.get("phase2", "standin"), fps, kw.get("device"),
+                         track_seconds if track_seconds is not None else prof.get("track_seconds"))
+    if module is not None:
+        kw["phase2"] = module
     return SwordSystem(fps=fps, **kw)
