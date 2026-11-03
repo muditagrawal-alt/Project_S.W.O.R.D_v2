@@ -45,3 +45,9 @@ def test_installer_maps_tuned_filters_out_of_fusion(tmp_path):
     assert prof["zoom_min_score"] == 0.3 and prof["weapon_max_area"] == 0.085 and prof["zoom_min_window"] == 96
     assert prof["fusion"] == {"w_susp": 0.4, "w_event": 0.6, "persist_s": 1.0, "hold_s": 1.0}
     assert "det.pt" in json.loads((tmp_path / "w" / "provenance.json").read_text())
+
+
+def test_phase2_selection():
+    assert P.make_phase2("standin", fps=10.0) is None
+    with pytest.raises(ValueError):
+        P.make_phase2("no-such-tracker", fps=10.0)

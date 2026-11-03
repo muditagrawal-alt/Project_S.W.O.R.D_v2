@@ -56,9 +56,29 @@ def fusion_config(name: str, fps: float):
     return FusionConfig.for_fps(fps, **list_profiles()[name].get("fusion", {}))
 
 
-def build_system(name: str, fps: float, **overrides):
+PHASE2_KINDS = ("standin", "persistent", "persistent-legacy")
+
+
+def make_phase2(kind: str, fps: float, device=None):
+    """Phase 2 module by name: None (SwordSystem's stand-in), the team's persistent_video_tracking package
+    (tracking/persistent_phase2.py), or that package as submitted (benchmarking only)."""
+    if kind == "standin":
+        return None
+    if kind not in PHASE2_KINDS:
+        raise ValueError(f"unknown Phase 2 module {kind!r}; choose from {PHASE2_KINDS}")
+    from tracking.persistent_phase2 import PersistentPhase2
+    from tracking.pipeline import pick_device
+
+    return PersistentPhase2(fps, device=pick_device(device), legacy=kind == "persistent-legacy")
+
+
+def build_system(name: str, fps: float, phase2: str | None = None, **overrides):
+    """phase2: Phase 2 module name (PHASE2_KINDS); default: the profile's "phase2" entry, else the stand-in."""
     from pipeline.system import SwordSystem
 
     kw = system_kwargs(name) | overrides
     kw.setdefault("fusion_cfg", fusion_config(name, fps))
+    kind = phase2 or list_profiles()[name].get("phase2", "standin")
+    if kind != "standin":
+        kw["phase2"] = make_phase2(kind, fps, kw.get("device"))
     return SwordSystem(fps=fps, **kw)

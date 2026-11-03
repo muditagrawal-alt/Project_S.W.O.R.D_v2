@@ -249,6 +249,8 @@ def main():
     ap.add_argument("--weapon-zoom", default="", help="person-zoom crops: '', 'person', 'hands' or 'person+hands'")
     ap.add_argument("--zoom-imgsz", type=int, default=640)
     ap.add_argument("--stride", type=int, default=1, help="process every k-th frame (temporal subsampling)")
+    ap.add_argument("--phase2", default=None, choices=("standin", "persistent", "persistent-legacy"),
+                    help="Phase 2 module: stand-in, the team's persistent_video_tracking, or that package as submitted")
     ap.add_argument("--no-pose", action="store_true")
     ap.add_argument("--no-action", action="store_true")
     ap.add_argument("--device", default=None)
@@ -262,7 +264,13 @@ def main():
     if args.profile:
         from pipeline.profiles import build_system
 
-        make = lambda fps: build_system(args.profile, fps, use_pose=not args.no_pose, use_action=not args.no_action)  # noqa: E731
+        make = lambda fps: build_system(args.profile, fps, phase2=args.phase2, use_pose=not args.no_pose,  # noqa: E731
+                                        use_action=not args.no_action)
+    elif args.phase2 and args.phase2 != "standin":
+        from pipeline.profiles import make_phase2
+        from pipeline.system import SwordSystem
+
+        make = lambda fps: SwordSystem(fps=fps, phase2=make_phase2(args.phase2, fps, args.device), **kw)  # noqa: E731
     res = run_video(args.video, Path(args.out_dir), gt=args.gt, save_video=args.save_video, max_frames=args.max_frames,
                     fps_override=args.fps, system_kwargs=kw, frame_stride=args.stride, make_system=make)
     s = res["summary"]
