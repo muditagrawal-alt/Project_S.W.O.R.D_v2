@@ -71,6 +71,7 @@ def main():
     ap.add_argument("--device", default="mps")
     ap.add_argument("--zoom", default="", help="person-zoom crops merged with the full frame: '', person, hands, person+hands")
     ap.add_argument("--zoom-imgsz", type=int, default=640)
+    ap.add_argument("--zoom-conf", type=float, default=None, help="detector threshold on the zoom crops (default: --conf; the live pipeline uses max(conf, zoom_min_score))")
     ap.add_argument("--zoom-min-window", type=int, default=0, help="skip zoom windows smaller than this (tracking/zoom.py)")
     ap.add_argument("--tta-scales", nargs="*", type=int, default=[], help="test-time augmentation: extra full-frame "
                                                                          "image sizes merged with --imgsz")
@@ -102,7 +103,8 @@ def main():
             b, s, c = detect_full_frame(model, img, args.imgsz, args.tta_scales, args.tta_flip, args.conf, args.device)
             if zoom_modes:   # same code path as the live pipeline (tracking/zoom.py)
                 win = zoom_windows(f["persons"], img.shape, ZoomConfig(modes=zoom_modes, min_window=args.zoom_min_window))
-                zb, zs, zc = detect_in_windows(model, img, win, imgsz=args.zoom_imgsz, conf=args.conf, device=args.device,
+                zb, zs, zc = detect_in_windows(model, img, win, imgsz=args.zoom_imgsz, device=args.device,
+                                               conf=args.conf if args.zoom_conf is None else args.zoom_conf,
                                                flip=args.zoom_flip)
                 b, s, c, origin = merge_detections([(b, s, c), (zb, zs, zc)], return_source=True)
                 src = ["full" if o == 0 else "zoom" for o in origin]

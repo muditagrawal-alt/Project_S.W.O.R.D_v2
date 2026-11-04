@@ -18,6 +18,9 @@ Fixed a priori from the TRAINING data, not tuned (FIXED_FILTERS): boxes larger t
 largest CCTV training box is 12.3% of its frame; research/data/cctv_det, web images excluded) and zoom windows smaller
 than 96 px are skipped (the smallest training zoom crop). Their effect is reported as an ablation.
 
+--dev-cameras / --test-cameras change the mock-attack split (leave-one-camera-out evaluation); the defaults are the
+pre-declared split.
+
 Objective (declared before running): maximise DEV verified recall subject to the DEV false-alarm rates <= the budget;
 ties -> lower total DEV false alarms, then closer to the defaults. If nothing meets the budget, the configuration with
 the lowest worst-case DEV false-alarm rate is reported as infeasible. v3 (--objective pooled, default) applies the budget
@@ -212,6 +215,8 @@ def main():
                          "per-source (v1/v2): to each dev source (the 2-minute Mendeley P2 no-gun set then decides alone)")
     ap.add_argument("--zoom-modes", default="hands", help="zoom modes the replays were recorded with")
     ap.add_argument("--workers", type=int, default=6)
+    ap.add_argument("--dev-cameras", nargs="+", default=["Cam1", "Cam5"], help="mock-attack cameras used for selection")
+    ap.add_argument("--test-cameras", nargs="+", default=["Cam7"], help="mock-attack cameras reported as held out")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
     out = Path(args.out)
@@ -224,8 +229,10 @@ def main():
     ucf_labels = by_video(load_labels(LABELS / "ucf_derived.csv"))
     loc = lambda d: d["video"].split("/")[2].split("_")[2]  # noqa: E731
     ucf_tr, ucf_te = ucf_split([d for d in ucf if d["video"] in ucf_labels])
-    sets = {"usrt_dev": [d for k, d in segs.items() if k.startswith(("Cam1", "Cam5"))],
-            "usrt_test": [d for k, d in segs.items() if k.startswith("Cam7")],
+    if set(args.dev_cameras) & set(args.test_cameras):
+        raise SystemExit("a camera cannot be both DEV and test")
+    sets = {"usrt_dev": [d for k, d in segs.items() if k.split("-")[0] in args.dev_cameras],
+            "usrt_test": [d for k, d in segs.items() if k.split("-")[0] in args.test_cameras],
             "vtest": [d for k, d in segs.items() if k == "vtest.avi"],
             "men_dev_nogun": [d for d in men if loc(d) == "P2" and d["video"].split("/")[1] == "No_Gun"],
             "men_test": [d for d in men if loc(d) in ("P4", "P5")],
@@ -291,7 +298,7 @@ def main():
     dev_full = {name: apply_det(docs, default_params, zoom_modes) for name, docs in dev_sets.items()}
     default_rules_filters = default_params | FIXED_FILTERS | {"zoom_min_score": first["selected"]["params"]["zoom_min_score"]}
     result = {"created": datetime.now().isoformat(timespec="seconds"), "fa_budgets": args.fa_budget, "objective": args.objective,
-              "fa_keys": fa_keys, "grid": {"zoom_min_score": ZOOM_MIN, **RULE_GRID, "verify": verify}, "fixed_filters": FIXED_FILTERS,
+              "fa_keys": fa_keys, "dev_cameras": args.dev_cameras, "test_cameras": args.test_cameras, "grid": {"zoom_min_score": ZOOM_MIN, **RULE_GRID, "verify": verify}, "fixed_filters": FIXED_FILTERS,
               "set_sizes": {k: len(v) for k, v in sets.items()}, "zoom_modes": zoom_modes, "n_trials": len(trials),
               "reused_trials": args.reuse_trials, "dev_frontier_recall_vs_worst_fa": frontier,
               "default_on_dev": dev_trial(dev_full, default_params), "test_default": report(default_params),
@@ -312,7 +319,7 @@ def main():
         for b, op in operating_points.items():
             ax.scatter([worst(op["selected"])], [op["selected"]["dev_verified_recall"]], marker="*", s=120, label=f"selected, budget {b}")
         ax.set_xlabel("worst DEV false alarms per minute (" + ", ".join(k.replace("dev_fa_", "") for k in fa_keys) + ")")
-        ax.set_ylabel("DEV verified event recall (mock-attack Cam1+Cam5)")
+        ax.set_ylabel(f"DEV verified event recall (mock-attack {'+'.join(args.dev_cameras)})")
         ax.legend(fontsize=7)
         fig.tight_layout()
         fig.savefig(out / "dev_tradeoff.png", dpi=150)

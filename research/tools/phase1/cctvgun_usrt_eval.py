@@ -69,6 +69,8 @@ def scored(det: dict, f: dict):
 
 def keep(det: dict, persons: list, shape, f: dict) -> bool:
     b = det["bbox"]
+    if det["score"] < f.get("min_det_score", 0.0):   # detector score (the verifier never overwrites it)
+        return False
     if det.get("src") == "zoom" and det["score"] < f["zoom_min_score"]:
         return False
     if (b[2] - b[0]) * (b[3] - b[1]) > f["max_area_frac"] * shape[0] * shape[1]:
@@ -125,8 +127,9 @@ def cluster_ci(recs: list, n_boot: int = 300, seed: int = 0) -> list:
     return [round(float(np.quantile(vals, 0.025)), 1), round(float(np.quantile(vals, 0.975)), 1)]
 
 
-def evaluate(replay: Path, profile: str | None, score_key: str = "score", n_boot: int = 300) -> dict:
-    f = filters_of(profile)
+def evaluate(replay: Path, profile: str | None, score_key: str = "score", n_boot: int = 300,
+             min_det_score: float = 0.0) -> dict:
+    f = {**filters_of(profile), **({"min_det_score": min_det_score} if min_det_score else {})}
     res = {}
     for mode in ("handgun", "any"):
         recs = records(replay, f, mode, score_key)
@@ -145,6 +148,7 @@ def main():
     ap.add_argument("--replay", action="append", required=True, help="label=run_dir[:profile]")
     ap.add_argument("--out", required=True)
     ap.add_argument("--n-boot", type=int, default=300)
+    ap.add_argument("--min-det-score", type=float, default=0.0, help="drop detections below this detector score (e.g. 0.05 = MMDetection's default test threshold); the recording's own threshold applies anyway")
     args = ap.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -153,7 +157,8 @@ def main():
     for spec in args.replay:
         label, rest = spec.split("=", 1)
         run, _, profile = rest.partition(":")
-        result["systems"][label] = {"replay": run, "profile": profile or None, **evaluate(Path(run), profile or None, n_boot=args.n_boot)}
+        res = evaluate(Path(run), profile or None, n_boot=args.n_boot, min_det_score=args.min_det_score)
+        result["systems"][label] = {"replay": run, "profile": profile or None, **res}
         print(label, json.dumps(result["systems"][label]["results"]), flush=True)
     (out / "results.json").write_text(json.dumps(result, indent=2))
     lines = ["| system | handgun AP50, all USRT (95% CI) | any-weapon AP50, all USRT (95% CI) | handgun AP50, Cam7 | "
