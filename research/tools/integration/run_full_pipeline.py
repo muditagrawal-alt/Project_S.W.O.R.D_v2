@@ -175,6 +175,13 @@ def main():
     index = {r["segment"]: r for r in json.loads((SEQ_DIR / "index.json").read_text())}
     segs = args.segments or sorted(index)
     kw = dict(weapon_model=args.weapon_model, weapon_imgsz=args.weapon_imgsz, use_ensemble=args.ensemble)
+    detector_meta = dict(kw)
+    if args.profile and not args.reevaluate:   # a live profile run uses the profile's detector, not --weapon-model
+        from pipeline.profiles import system_kwargs
+
+        pk = system_kwargs(args.profile)
+        detector_meta = {"weapon_model": pk["weapon_model"], "weapon_imgsz": pk["weapon_imgsz"], "use_ensemble": False,
+                         **{k: pk[k] for k in ("weapon_zoom", "weapon_tta_scales", "weapon_verifier") if k in pk}}
     systems = {}
 
     def system_for(fps):
@@ -242,7 +249,7 @@ def main():
                                                   "frame_precision", "frame_recall")}})
 
     baselines = [k for k in next(iter(per_seg.values()))["evaluation"] if not k.startswith("_")]
-    results = {"config": args.name, "detector": kw, "splits": {}}
+    results = {"config": args.name, "detector": detector_meta, "splits": {}}
     for split, cams in SPLITS.items():
         names = [n for n, v in per_seg.items() if v["camera"] in cams]
         if not names:
@@ -288,7 +295,8 @@ def main():
                   f"{f' with profile `{args.profile}`' if args.profile else ''} (detector as recorded; timings are those of "
                   f"the original recording, not of this configuration).")
     else:
-        header = (f"Detector: `{Path(args.weapon_model).name if not args.ensemble else 'WBF ensemble'}` @ imgsz {args.weapon_imgsz}; "
+        header = (f"Detector: `{Path(detector_meta['weapon_model']).name if not args.ensemble else 'WBF ensemble'}` "
+                  f"@ imgsz {detector_meta['weapon_imgsz']}{f' (profile `{args.profile}`)' if args.profile else ''}; "
                   f"throughput {results['throughput_fps']} fps (mean over all frames).")
     lines = [f"# Full pipeline — {args.name}", "", header, ""]
     for split, table in results["splits"].items():
