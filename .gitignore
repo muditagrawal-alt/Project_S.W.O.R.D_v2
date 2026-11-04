@@ -61,3 +61,11 @@ weights/*.json
 
 # ─── Machine-specific system profiles (written by research/tools/integration/install_profile.py) ───
 config/profiles.json
+
+# ─── Paper, results and reports stay local (not published in this repository) ───
+PAPER/
+paper/
+paper_reference/
+capstone_report/
+persistent_video_tracking/dataset/
+persistent_video_tracking/*AUDIT*.md
