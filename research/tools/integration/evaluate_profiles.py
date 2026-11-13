@@ -7,7 +7,10 @@ Reported per profile, alarm rung = rules level >= SUSPICIOUS_ACTIVITY:
   DEV   mock-attack Cam1+Cam5 verified recall / false alarms per minute outside weapon events; Mendeley P2 no-gun and
         UCF-Crime dev-half normal videos: alarms per minute (all false)
   TEST  mock-attack Cam7 (verified, segment-bootstrap CI), weapon-free vtest alarms per minute, Mendeley P4+P5 and
-        UCF-Crime test half (derived interval labels): event recall and false alarms per minute
+        UCF-Crime test half (interval labels): event recall and false alarms per minute
+
+--labels reviewed scores against research/data/labels/*_reviewed.csv (the derived labels with the human review
+applied) instead of *_derived.csv.
 
     python research/tools/integration/evaluate_profiles.py --out <dir> \\
         --profile original:<usrt replay>:<mendeley replay>:<ucf replay> --profile cctv-zoom:<...>:<...>:<...>
@@ -47,12 +50,15 @@ def profile_params(p: dict) -> dict:
             "verify_min": float(p.get("verify_min", 0.0)) if p.get("weapon_verifier") else 0.0}
 
 
+LABEL_SET = "derived"   # file suffix of the interval labels: derived or reviewed (--labels)
+
+
 def sets_for(usrt: Path, mendeley: Path, ucf: Path) -> dict:
     segs = {d["video"]: d for d in load(usrt, "segments/*/frames.json")}
     men = load(mendeley, "videos/*/frames.json")
     ucf_docs = [d for d in load(ucf, "videos/*/frames.json")
                 if d["video"].split("/")[-1].replace("_x264.mp4", "") not in DETECTOR_OVERLAP]
-    ucf_labels = by_video(load_labels(LABELS / "ucf_derived.csv"))
+    ucf_labels = by_video(load_labels(LABELS / f"ucf_{LABEL_SET}.csv"))
     loc = lambda d: d["video"].split("/")[2].split("_")[2]  # noqa: E731
     ucf_tr, ucf_te = ucf_split([d for d in ucf_docs if d["video"] in ucf_labels])
     return {"usrt_dev": [d for k, d in segs.items() if k.startswith(("Cam1", "Cam5"))],
@@ -67,8 +73,8 @@ def sets_for(usrt: Path, mendeley: Path, ucf: Path) -> dict:
 def evaluate(sets: dict, params: dict, zoom_modes: tuple) -> dict:
     """Profile parameters other than the tuned rule keys (e.g. l_low) are applied through cfg_for as well."""
     base = FusionConfig()
-    men_labels = by_video(load_labels(LABELS / "mendeley_derived.csv"))
-    ucf_labels = by_video(load_labels(LABELS / "ucf_derived.csv"))
+    men_labels = by_video(load_labels(LABELS / f"mendeley_{LABEL_SET}.csv"))
+    ucf_labels = by_video(load_labels(LABELS / f"ucf_{LABEL_SET}.csv"))
     d = {name: apply_det(docs, params, zoom_modes) for name, docs in sets.items()}
     dev = usrt_eval(d["usrt_dev"], base, params)
     test_evals = usrt_segment_evals(d["usrt_test"], base, params)
@@ -101,8 +107,12 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--profile", action="append", required=True, help="name:usrt_replay:mendeley_replay:ucf_replay")
     ap.add_argument("--zoom-modes", default="hands", help="zoom modes the zoom replays were recorded with")
+    ap.add_argument("--labels", choices=("derived", "reviewed"), default="derived",
+                    help="interval labels for Mendeley/UCF: as derived, or with the human review applied")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
+    global LABEL_SET
+    LABEL_SET = args.labels
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     profiles = list_profiles()
@@ -113,7 +123,8 @@ def main():
         sets = sets_for(Path(usrt), Path(men), Path(ucf))
         results[name] = evaluate(sets, profile_params(profiles[name]), tuple(m for m in args.zoom_modes.split("+") if m))
         print(name, json.dumps(results[name]["test"]["usrt"]), flush=True)
-    (out / "results.json").write_text(json.dumps({"created": datetime.now().isoformat(timespec="seconds"), "inputs": inputs,
+    (out / "results.json").write_text(json.dumps({"created": datetime.now().isoformat(timespec="seconds"), "labels": LABEL_SET,
+                                                  "inputs": inputs,
                                                   "profiles": {n: profiles[n] for n in results}, "results": results},
                                                  indent=2, default=float))
     (out / "table.md").write_text(table(results) + "\n")
