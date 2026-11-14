@@ -69,3 +69,7 @@ paper_reference/
 capstone_report/
 persistent_video_tracking/dataset/
 persistent_video_tracking/*AUDIT*.md
+
+# ─── Local tool settings (never published) ───
+.agents/
+.claude/
