@@ -243,6 +243,26 @@ CHECKPOINT_URL = ("https://download.openmmlab.com/mmaction/skeleton/posec3d/slow
                   "slowonly_r50_u48_240e_ntu120_xsub_keypoint-6736b03f.pth")
 
 
+def ensure_checkpoint(path=DEFAULT_CHECKPOINT) -> Path:
+    """The official NTU-120 PoseC3D checkpoint: downloaded from OpenMMLab on first use (8.3 MB) and checked against
+    the SHA-256 prefix in its file name."""
+    import hashlib
+    import urllib.request
+
+    path = Path(path)
+    if path.exists():
+        return path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".part")
+    print(f"[posec3d] downloading {CHECKPOINT_URL}")
+    urllib.request.urlretrieve(CHECKPOINT_URL, tmp)
+    if not hashlib.sha256(tmp.read_bytes()).hexdigest().startswith(path.stem.rsplit("-", 1)[-1]):
+        tmp.unlink()
+        raise RuntimeError(f"checksum mismatch for {CHECKPOINT_URL}")
+    tmp.replace(path)
+    return path
+
+
 def default_action_map_path() -> str:
     """configs/action_map.yaml if present, else action_map.yaml next to this file (the branch ships it at the root)."""
     here = Path(__file__).parent
@@ -530,9 +550,11 @@ def main():
         sys.exit(1)
 
     ckpt_path = Path(args.checkpoint)
+    if not ckpt_path.exists() and ckpt_path == DEFAULT_CHECKPOINT:
+        ensure_checkpoint(ckpt_path)
     if not ckpt_path.exists():
         print(f"[ERROR] Checkpoint file not found: {ckpt_path}")
-        print("        Please run: python download_checkpoints.py")
+        print(f"        Download it from {CHECKPOINT_URL}")
         sys.exit(1)
 
     out_prefix = args.output_prefix

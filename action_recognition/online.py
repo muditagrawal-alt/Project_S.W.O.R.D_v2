@@ -12,14 +12,15 @@ from __future__ import annotations
 
 from collections import defaultdict, deque
 from concurrent.futures import Future, ThreadPoolExecutor
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 
-from action_recognition.posec3d import (DEFAULT_CHECKPOINT, ResNet3dSlowOnly, default_action_map_path, load_action_map,
-                                        load_slowonly_weights, map_predictions_to_threats, posec3d_inputs)
+from action_recognition.posec3d import (DEFAULT_CHECKPOINT, ResNet3dSlowOnly, default_action_map_path, ensure_checkpoint,
+                                        load_action_map, load_slowonly_weights, map_predictions_to_threats, posec3d_inputs)
 
 
 def resample_linear(ts: np.ndarray, k: np.ndarray, s: np.ndarray, targets: np.ndarray):
@@ -44,6 +45,8 @@ class OnlineActionRecognizer:
                  flip_test: bool = True, stale_s: float = 3.0, batch: int = 8, half: Optional[bool] = None,
                  temporal: str = "linear", weapon_head="auto"):
         self.device = torch.device(device)
+        if Path(checkpoint) == DEFAULT_CHECKPOINT:
+            ensure_checkpoint()   # official checkpoint, downloaded on first use
         self.model = load_slowonly_weights(ResNet3dSlowOnly(), checkpoint, device="cpu").to(self.device).eval()
         # fp16 on GPU: ~20% faster on Apple MPS; max probability difference vs fp32 0.0007, identical top-1 (tested)
         self.half = (self.device.type in ("mps", "cuda")) if half is None else half

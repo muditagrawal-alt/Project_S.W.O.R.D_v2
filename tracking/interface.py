@@ -31,7 +31,9 @@ from tracking.tracker import BoTSORTWrapper, ByteTrackWrapper
 from tracking.trajectory import TrajectoryAnalyzer
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_PERSON_MODEL = PROJECT_ROOT / "yolo26m" / "resumed_run" / "weights" / "yolo26n.pt"  # COCO-pretrained YOLO26n
+_LOCAL_PERSON_MODEL = PROJECT_ROOT / "yolo26m" / "resumed_run" / "weights" / "yolo26n.pt"
+# COCO-pretrained YOLO26n; without the local copy (fresh clone) Ultralytics downloads the official yolo26n.pt
+DEFAULT_PERSON_MODEL = _LOCAL_PERSON_MODEL if _LOCAL_PERSON_MODEL.exists() else Path("yolo26n.pt")
 
 
 class Phase2Tracker(Protocol):
