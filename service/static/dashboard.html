@@ -141,9 +141,9 @@ function setLevel(lv, info) {
   $("levelInfo").textContent = info || "";
 }
 
-function startPreview(runId) {
+function startPreview(runId) {   // live MJPEG stream of the annotated video (every frame, up to 25/s)
   clearInterval(previewTimer);
-  previewTimer = setInterval(() => { $("preview").src = `/api/runs/${runId}/preview.jpg?ts=${Date.now()}`; }, 500);
+  $("preview").src = `/api/runs/${runId}/stream.mjpg?ts=${Date.now()}`;
 }
 
 async function loadIncidents() {

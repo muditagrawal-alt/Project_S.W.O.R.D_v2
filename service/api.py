@@ -37,7 +37,7 @@ from typing import Any, Callable, Dict, List, Optional
 import cv2
 import numpy as np
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, HTMLResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
@@ -101,6 +101,8 @@ class RunRequest(BaseModel):
     actor: str = "operator"
     fps: Optional[float] = Field(None, description="override the source fps (e.g. 2 for 2-fps image sequences)")
     max_frames: Optional[int] = None
+    stride: int = Field(0, ge=0, le=30, description="files: detect on every k-th frame, 0 = auto (about 6 detections per "
+                        "second); every frame is still shown and recorded")
     live: Optional[bool] = Field(None, description="wall-clock timestamps + async Phase 4; default: True for cameras/streams")
     use_pose: bool = True
     use_action: bool = True
@@ -152,6 +154,10 @@ class RunWorker:
     def submit(self, run_id: str, req: RunRequest) -> None:
         self.stop_flags[run_id] = threading.Event()
         self.futures[run_id] = self.pool.submit(self._execute, run_id, req)
+
+    def is_active(self, run_id: str) -> bool:
+        f = self.futures.get(run_id)
+        return f is not None and not f.done()
 
     def stop(self, run_id: str) -> bool:
         flag = self.stop_flags.get(run_id)
@@ -256,9 +262,6 @@ class RunWorker:
             now = time.monotonic()
             if now - state["last_pub"] >= 0.2 or rec["fusion_events"]:
                 state["last_pub"] = now
-                ok, jpg = cv2.imencode(".jpg", draw(frame, rec), [cv2.IMWRITE_JPEG_QUALITY, 75])
-                if ok:
-                    self.previews[run_id] = jpg.tobytes()
                 th = rec["threat"]
                 hub.publish({"type": "frame", "run_id": run_id, "frame_idx": rec["frame_idx"], "t": rec["timestamp"],
                              "scene_level": th["scene_level"], "incident_id": iid,
@@ -267,10 +270,23 @@ class RunWorker:
                              "weapons": [{"cls_name": w["cls_name"], "score": w["score"], "person_id": w["person_id"]}
                                          for w in rec["weapons"]]})
 
+        def on_display(shown: np.ndarray) -> None:   # every frame, with the latest detections: the live video
+            now = time.monotonic()
+            if now - state.get("last_frame", 0.0) < 1 / 25:
+                return
+            state["last_frame"] = now
+            h, w = shown.shape[:2]
+            if w > 960:
+                shown = cv2.resize(shown, (960, int(h * 960 / w)), interpolation=cv2.INTER_AREA)
+            ok, jpg = cv2.imencode(".jpg", shown, [cv2.IMWRITE_JPEG_QUALITY, 75])
+            if ok:
+                self.previews[run_id] = jpg.tobytes()
+
         try:
             res = run_video(req.source, out_dir, gt=None, save_video=req.save_video, max_frames=req.max_frames,
                             fps_override=req.fps, on_frame=on_frame, live=live, keep_frames=not live,
-                            should_stop=self.stop_flags[run_id].is_set, make_system=make)
+                            should_stop=self.stop_flags[run_id].is_set, make_system=make, frame_stride=req.stride,
+                            on_display=on_display)
             incidents = state["mgr"].flush(state["last"]) if state["mgr"] else []
             if state["system"] is not None and hasattr(state["system"], "close"):
                 state["system"].close()
@@ -397,6 +413,29 @@ def create_app(database_url: Optional[str] = None, data_dir: Optional[str] = Non
             audit(s, body.actor, "run_stop_requested", f"run:{run_id}")
             s.commit()
         return {"run_id": run_id, "stop_requested": True}
+
+    @app.get("/api/runs/{run_id}/stream.mjpg")
+    async def stream(run_id: str):
+        """The run's annotated video as an MJPEG stream (up to 25 frames/s; ends shortly after the run)."""
+        if run_id not in worker.futures and run_id not in worker.previews:
+            raise HTTPException(404, "unknown run")
+
+        async def frames():
+            last, idle = None, 0
+            while True:
+                jpg = worker.previews.get(run_id)
+                if jpg is not None and jpg is not last:
+                    last, idle = jpg, 0
+                    yield (b"--frame\r\nContent-Type: image/jpeg\r\nContent-Length: " + str(len(jpg)).encode()
+                           + b"\r\n\r\n" + jpg + b"\r\n")
+                else:
+                    idle += 1
+                    if not worker.is_active(run_id) and idle > 100:
+                        break
+                await asyncio.sleep(1 / 50)
+
+        return StreamingResponse(frames(), media_type="multipart/x-mixed-replace; boundary=frame",
+                                 headers={"Cache-Control": "no-store"})
 
     @app.get("/api/runs/{run_id}/preview.jpg")
     def preview(run_id: str):

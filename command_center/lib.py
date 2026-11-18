@@ -170,6 +170,10 @@ class ServiceClient:
     def audit(self, limit: int = 200) -> list:
         return self._get("/api/audit", limit=limit).json()
 
+    def stream_url(self, run_id: str) -> str:
+        """The run's live annotated video (MJPEG; the browser plays it directly)."""
+        return f"{self.base}/api/runs/{run_id}/stream.mjpg"
+
     def preview(self, run_id: str) -> Optional[bytes]:
         try:
             return self._get(f"/api/runs/{run_id}/preview.jpg").content

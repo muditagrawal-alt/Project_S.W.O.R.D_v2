@@ -19,6 +19,7 @@ import csv
 import json
 import time
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from pathlib import Path
 from typing import Callable, Optional
@@ -43,6 +44,15 @@ def _json_default(o):
     if isinstance(o, np.ndarray):
         return o.tolist()
     raise TypeError(type(o))
+
+
+LIVE_DETECT_FPS = 6.0     # live sources: expected detection rate (sets the system's frame-based settings)
+TARGET_DETECT_FPS = 6.0   # files with frame_stride=0 (auto): about this many detections per second
+
+
+def auto_stride(src_fps: float, target_fps: float = TARGET_DETECT_FPS) -> int:
+    """Frame stride that gives about target_fps detections per second (1 for sources at or below it)."""
+    return max(1, int(round(src_fps / target_fps)))
 
 
 def draw(frame: np.ndarray, rec: dict) -> np.ndarray:
@@ -154,53 +164,81 @@ def run_video(video: str, out_dir: Path, system: Optional[SwordSystem] = None, g
               conf: float = 0.5, live: bool = False, keep_frames: bool = True,
               should_stop: Optional[Callable[[], bool]] = None,
               make_system: Optional[Callable[[float], SwordSystem]] = None, frame_stride: int = 1,
-              video_id: Optional[str] = None) -> dict:
+              video_id: Optional[str] = None, on_display: Optional[Callable[[np.ndarray], None]] = None) -> dict:
     """live=True: timestamps from the wall clock (cameras/streams) instead of frame_idx / fps.
     keep_frames=False: do not hold full per-frame records (long live runs); frames.json and the baseline ladder are
     then skipped, the timeline and summary are still written.
     make_system(fps): builds the system once the source fps is known (used by the Phase 6 service).
-    frame_stride=k: process every k-th frame of a video (lossless temporal subsampling; fps becomes fps / k).
+    frame_stride=k: process every k-th frame of a video (lossless temporal subsampling; fps becomes fps / k);
+        0 = auto_stride (about TARGET_DETECT_FPS detections per second).
+    Smooth video: every source frame is drawn with the latest detections, written to annotated.mp4 at the source
+    frame rate and passed to on_display(frame). Live sources run the detection on a worker thread, so the video
+    follows the camera while detection runs on the newest frame whenever the previous one is done.
     video_id: identifier stored as frames.json "video" (default: the file name; needed when names repeat)."""
     out_dir.mkdir(parents=True, exist_ok=True)
     cap = open_source(video)
     if not cap.isOpened():
         raise FileNotFoundError(video)
     src_fps = fps_override or cap.get(cv2.CAP_PROP_FPS) or 25.0
-    fps = src_fps / max(1, frame_stride)
+    if frame_stride == 0:
+        frame_stride = 1 if live else auto_stride(src_fps)
+    fps = min(src_fps, LIVE_DETECT_FPS) if live else src_fps / max(1, frame_stride)
     w, h = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     system = system or (make_system(fps) if make_system else SwordSystem(fps=fps, **(system_kwargs or {})))
     system.reset()
-    writer = cv2.VideoWriter(str(out_dir / "annotated.mp4"), cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h)) if save_video else None
+    writer = cv2.VideoWriter(str(out_dir / "annotated.mp4"), cv2.VideoWriter_fourcc(*"mp4v"), src_fps, (w, h)) if save_video else None
     frames, rows, events, t0, idx = [], [], [], time.time(), 0
     t_live0 = time.monotonic()
-    src_idx = -1
-    while True:
-        if should_stop is not None and should_stop():
-            break
-        ok, frame = cap.read()
-        src_idx += 1
-        if not ok or (max_frames and idx >= max_frames):
-            break
-        if frame_stride > 1 and src_idx % frame_stride:
-            continue
-        if live:
-            t = time.monotonic() - t_live0
-        elif isinstance(cap, ImageSequence):
-            t = cap.last_t
-        else:
-            t = src_idx / src_fps
-        rec = system.process(frame, idx, t)
+    src_idx, last, pending = -1, None, None
+    # a file or image sequence run live is played back at its own frame rate, as a camera would deliver it
+    paced = live and (isinstance(cap, ImageSequence) or Path(str(video)).is_file())
+    next_read = time.monotonic()
+    pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="sword-detect") if live else None
+
+    def handle(rec: dict, frame: np.ndarray) -> None:
+        nonlocal idx, last
+        last = rec
         if keep_frames:
             frames.append(rec)
         rows.append((rec["frame_idx"], rec["timestamp"], rec["threat"]["scene_level"], len(rec["persons"]),
                      len(rec["weapons"]), max([d["score"] for d in rec["weapon_detections"]] + [0.0])))
         events.extend(rec["fusion_events"])
-        if writer is not None:
-            writer.write(draw(frame, rec))
         if on_frame is not None:
             on_frame(rec, frame)
         idx += 1
-    cap.release()
+
+    try:
+        while True:
+            if should_stop is not None and should_stop():
+                break
+            if paced:
+                time.sleep(max(0.0, next_read - time.monotonic()))
+                next_read = max(next_read, time.monotonic() - 1 / src_fps) + 1 / src_fps
+            ok, frame = cap.read()
+            src_idx += 1
+            if not ok or (max_frames and idx >= max_frames):
+                break
+            if live:   # detection on a worker thread; the video keeps the camera's pace
+                if pending is not None and pending.done():
+                    handle(*pending.result())
+                    pending = None
+                if pending is None:
+                    pending = pool.submit(lambda f=frame, i=idx, t=time.monotonic() - t_live0: (system.process(f, i, t), f))
+            elif not (frame_stride > 1 and src_idx % frame_stride):
+                t = cap.last_t if isinstance(cap, ImageSequence) else src_idx / src_fps
+                handle(system.process(frame, idx, t), frame)
+            if writer is not None or on_display is not None:
+                shown = draw(frame, last) if last is not None else frame
+                if writer is not None:
+                    writer.write(shown)
+                if on_display is not None:
+                    on_display(shown)
+        if pending is not None:
+            handle(*pending.result())
+    finally:
+        if pool is not None:
+            pool.shutdown(wait=True)
+        cap.release()
     if writer is not None:
         writer.release()
     wall = time.time() - t0
@@ -248,7 +286,8 @@ def main():
     ap.add_argument("--weapon-imgsz", type=int, default=640, help="weapon detector input size (640 = training size)")
     ap.add_argument("--weapon-zoom", default="", help="person-zoom crops: '', 'person', 'hands' or 'person+hands'")
     ap.add_argument("--zoom-imgsz", type=int, default=640)
-    ap.add_argument("--stride", type=int, default=1, help="process every k-th frame (temporal subsampling)")
+    ap.add_argument("--stride", type=int, default=1, help="process every k-th frame (temporal subsampling); "
+                    "0 = auto (about 6 detections per second). The annotated video keeps every frame")
     ap.add_argument("--phase2", default=None, choices=("standin", "botsort", "persistent", "persistent-legacy"),
                     help="Phase 2 module: stand-in, the team's persistent_video_tracking, or that package as submitted")
     ap.add_argument("--no-pose", action="store_true")

@@ -46,8 +46,8 @@ with left:
         source, live = str(int(cam)), True
 with right:
     max_frames = st.number_input("Max frames (0 = all)", 0, 100000, 300 if kind != "Built-in test clip" else 0, step=50)
-    stride = st.number_input("Frame stride (process every k-th frame)", 1, 10, 1)
-    update_every = st.slider("Refresh the view every N frames", 1, 30, 5)
+    stride = st.number_input("Detect on every k-th frame (0 = auto, about 6 detections/s; the video shows every frame)",
+                             0, 30, 0)
 
 # ───────────────────────────── configuration ─────────────────────────────
 ZOOMS = ["off", "person", "hands", "person+hands"]
@@ -115,11 +115,16 @@ if run:
     import cv2
 
     from fusion.rules import TemporalThreatEngine
-    from pipeline.run import draw, open_source, run_video
+    from pipeline.run import LIVE_DETECT_FPS, auto_stride, open_source, run_video
 
     cap = open_source(str(source))
-    fps = (cap.get(cv2.CAP_PROP_FPS) or 25.0) / stride
+    src_fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
     cap.release()
+    if live:   # detection runs on a worker thread at its own pace; the video follows the camera
+        fps, eff_stride = min(src_fps, LIVE_DETECT_FPS), 1
+    else:
+        eff_stride = 1 if str(source).endswith(".json") else (auto_stride(src_fps) if stride == 0 else int(stride))
+        fps = src_fps / eff_stride
     zoom_on = zoom != "off"
     system = get_system(round(fps, 3), str(reg[det_name]), imgsz, zoom, zoom_min if zoom_on else 0.0,
                         min_window if zoom_on else 0, max_area_pct / 100, use_pose, use_action and use_pose,
@@ -137,22 +142,34 @@ if run:
     hist = {"t": [], "level": []}
     events = []
     t_start = time.time()
+    ui = {"status": 0.0, "video": 0.0}
+
+    def on_display(shown):   # every frame with the latest detections; the view refreshes up to 15 times a second
+        now = time.time()
+        if now - ui["video"] < 1 / 15:
+            return
+        ui["video"] = now
+        h, w = shown.shape[:2]
+        if w > 960:
+            shown = cv2.resize(shown, (960, int(h * 960 / w)), interpolation=cv2.INTER_AREA)
+        view.image(cv2.cvtColor(shown, cv2.COLOR_BGR2RGB), width="stretch", output_format="JPEG")
 
     def on_frame(rec, frame):
         hist["t"].append(rec["timestamp"])
         hist["level"].append(LEVELS.index(rec["threat"]["scene_level"]))
         events.extend(rec["fusion_events"])
         n = len(hist["t"])
-        if n % update_every and not rec["fusion_events"]:
+        now = time.time()
+        if now - ui["status"] < 0.5 and not rec["fusion_events"]:   # status widgets: twice a second, or on a change
             return
+        ui["status"] = now
         lv = rec["threat"]["scene_level"]
         colour = {"NORMAL": "green", "ELEVATED": "orange", "SUSPICIOUS_ACTIVITY": "red", "WEAPON_RELATED_EVENT": "violet"}[lv]
         banner.markdown(f"### :{colour}[{lv.replace('_', ' ')}]  ·  t = {rec['timestamp']:.1f} s  ·  frame {rec['frame_idx']}")
-        view.image(draw(frame, rec)[:, :, ::-1], width="stretch")
         m1.metric("People tracked", len(rec["persons"]))
         m2.metric("Weapon detections", len(rec["weapon_detections"]))
         m3.metric("Frames processed", n)
-        m4.metric("Throughput", f"{n / max(time.time() - t_start, 1e-6):.1f} fps")
+        m4.metric("Detections per second", f"{n / max(time.time() - t_start, 1e-6):.1f}")
         chart.line_chart(pd.DataFrame({"scene level (0 NORMAL … 3 WEAPON_RELATED_EVENT)": hist["level"]}, index=hist["t"]),
                          height=180)
         if events:
@@ -162,7 +179,7 @@ if run:
     with st.spinner("Running…"):
         res = run_video(str(source), out, system=system, gt=str(gt) if gt else None, save_video=save_video and not live,
                         max_frames=int(max_frames) or None, on_frame=on_frame, live=live, keep_frames=not live,
-                        frame_stride=int(stride) if not str(source).endswith(".json") else 1)
+                        frame_stride=eff_stride, on_display=on_display)
     s = res["summary"]
     st.success(f"Done: {s['frames']} frames in {s['wall_seconds']} s — saved to research/runs/{out.name}")
     run_cfg = {"source": str(source), "profile": prof, "detector": det_name, "imgsz": imgsz, "zoom": zoom,

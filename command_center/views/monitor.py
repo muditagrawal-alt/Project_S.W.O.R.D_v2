@@ -51,6 +51,13 @@ with tab_service:
                 except Exception as e:   # noqa: BLE001
                     st.error(str(e))
 
+        # live video: an MJPEG stream played by the browser (smooth; outside the auto-refresh below, which would
+        # restart it). A newly started run appears after any interaction with the page.
+        playing = [r for r in client.runs() if r["status"] in ("running", "queued")]
+        if playing:
+            st.markdown(f'<img src="{client.stream_url(playing[0]["id"])}" alt="live annotated video" '
+                        'style="width:100%;border-radius:8px;background:#000">', unsafe_allow_html=True)
+
         @st.fragment(run_every="2s")
         def live_panel():
             runs = client.runs()
@@ -59,10 +66,7 @@ with tab_service:
             with c1:
                 if active:
                     r = active[0]
-                    img = client.preview(r["id"])
                     st.markdown(f"**Live: run `{r['id']}`** — {Path(r['source']).name} ({r['status']})")
-                    if img:
-                        st.image(img, width="stretch")
                     if st.button("Stop this run", key=f"stop-{r['id']}"):
                         client.stop_run(r["id"], actor)
                 else:

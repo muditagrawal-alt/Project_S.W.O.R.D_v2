@@ -62,3 +62,44 @@ def test_run_video_uses_sequence_timestamps_and_gt(tmp_path):
     gt = res["evaluation"]["_ground_truth"]
     assert gt["events"] == 1 and gt["weapon_frames"] == 2 and gt["segments_s"] == [[2.5, 3.0]]
     assert res["evaluation"]["B4_rules_full"]["event_recall"] == 0.0
+
+
+def make_video(tmp_path, n=30, fps=10.0):
+    path = tmp_path / "clip.mp4"
+    wr = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"mp4v"), fps, (64, 48))
+    for i in range(n):
+        wr.write(np.full((48, 64, 3), (i * 8) % 255, np.uint8))
+    wr.release()
+    return path
+
+
+def test_file_detects_on_every_kth_frame_but_shows_and_saves_every_frame(tmp_path):
+    sys_, shown = EchoSystem(), []
+    res = run_video(str(make_video(tmp_path)), tmp_path / "out", system=sys_, save_video=True, frame_stride=0,
+                    on_display=lambda f: shown.append(f.shape))
+    assert len(sys_.ts) == 15 and len(shown) == 30          # auto stride at 10 fps: 2
+    assert res["summary"]["fps"] == 5.0
+    cap = cv2.VideoCapture(str(tmp_path / "out" / "annotated.mp4"))
+    assert int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) == 30 and round(cap.get(cv2.CAP_PROP_FPS)) == 10
+
+
+def test_live_detection_runs_on_a_worker_thread_and_every_frame_is_shown(tmp_path):
+    import threading
+    import time
+
+    class SlowSystem(EchoSystem):
+        threads = []
+
+        def process(self, frame, idx, t):
+            self.threads.append(threading.current_thread().name)
+            time.sleep(0.02)
+            return super().process(frame, idx, t)
+
+    sys_, shown, idxs = SlowSystem(), [], []
+    t0 = time.monotonic()
+    run_video(str(make_video(tmp_path)), tmp_path / "out", system=sys_, live=True, keep_frames=False,
+              on_display=lambda f: shown.append(1), on_frame=lambda rec, f: idxs.append(rec["frame_idx"]))
+    assert time.monotonic() - t0 >= 2.5                     # a file run live plays at its own rate (30 frames, 10 fps)
+    assert len(shown) == 30 and 10 <= len(sys_.ts) <= 30     # detection keeps up roughly (20 ms each)
+    assert idxs == list(range(len(idxs))) and sys_.ts == sorted(sys_.ts)
+    assert all(n.startswith("sword-detect") for n in sys_.threads)

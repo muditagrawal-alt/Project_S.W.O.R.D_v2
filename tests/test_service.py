@@ -83,7 +83,8 @@ def wait_run(c, run_id, timeout=60):
 
 
 def test_run_creates_incident_with_evidence_and_audit(client, video):
-    r = client.post("/api/runs", json={"source": str(video), "actor": "tester", "pre_s": 1.0, "post_s": 1.0})
+    r = client.post("/api/runs", json={"source": str(video), "actor": "tester", "pre_s": 1.0, "post_s": 1.0,
+                                       "stride": 1})   # every frame: the schedule is per frame
     assert r.status_code == 201, r.text
     run = wait_run(client, r.json()["id"])
     assert run["status"] == "finished", run.get("error")
@@ -128,7 +129,7 @@ def test_run_creates_incident_with_evidence_and_audit(client, video):
 def test_websocket_streams_run(client, video):
     with client.websocket_connect("/ws/events") as ws:
         assert ws.receive_json()["type"] == "hello"
-        run_id = client.post("/api/runs", json={"source": str(video), "post_s": 0.5}).json()["id"]
+        run_id = client.post("/api/runs", json={"source": str(video), "post_s": 0.5, "stride": 1}).json()["id"]
         seen = []
         while True:
             m = ws.receive_json()
@@ -153,3 +154,14 @@ def test_validation(client, video, tmp_path):
     assert client.post("/api/runs/nope/stop").status_code == 404
     health = client.get("/api/health").json()
     assert health["status"] == "ok" and health["levels"] == LEVELS
+
+
+def test_live_video_stream_serves_jpeg_frames(client, video):
+    run_id = client.post("/api/runs", json={"source": str(video)}).json()["id"]   # default: auto stride
+    run = wait_run(client, run_id)
+    assert run["status"] == "finished" and run["frames"] == 30                      # 10 fps -> stride 2
+    with client.stream("GET", f"/api/runs/{run_id}/stream.mjpg") as r:
+        assert r.status_code == 200 and r.headers["content-type"].startswith("multipart/x-mixed-replace")
+        first = next(r.iter_bytes())
+    assert first.startswith(b"--frame") and b"\xff\xd8" in first                    # a JPEG frame
+    assert client.get("/api/runs/no-such-run/stream.mjpg").status_code == 404
