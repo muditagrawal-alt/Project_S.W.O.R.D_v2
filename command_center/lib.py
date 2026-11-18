@@ -17,6 +17,18 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+# Packages the system needs that a bare Python (e.g. pyenv's, outside the venv) usually lacks: import name -> pip name.
+REQUIRED_PACKAGES = {"torch": "torch", "cv2": "opencv-python", "ultralytics": "ultralytics", "rtmlib": "rtmlib",
+                     "onnxruntime": "onnxruntime", "lap": "lap", "supervision": "supervision",
+                     "fastapi": "fastapi", "uvicorn": "uvicorn", "sqlalchemy": "sqlalchemy"}
+VENV_PYTHON = PROJECT_ROOT / "venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+
+
+def missing_packages() -> List[str]:
+    """pip names of the required packages this interpreter cannot import."""
+    import importlib.util
+    return [pip for mod, pip in REQUIRED_PACKAGES.items() if importlib.util.find_spec(mod) is None]
+
 RUNS = PROJECT_ROOT / "research" / "runs"
 DATA = PROJECT_ROOT / "research" / "data"
 WEIGHTS = PROJECT_ROOT / "weights"
@@ -203,10 +215,13 @@ class ServiceClient:
 
 
 def start_service_background(port: int = 8000) -> subprocess.Popen:
-    """Launch `python -m service` (127.0.0.1) as a background process; its log goes to service_data/."""
+    """Launch `python -m service` (127.0.0.1) as a background process; its log goes to service_data/.
+    Uses this interpreter when it has every dependency, else the project's venv (so the service never starts under a
+    Python that is missing sqlalchemy, rtmlib, ...)."""
     (PROJECT_ROOT / "service_data").mkdir(exist_ok=True)
     log = open(PROJECT_ROOT / "service_data" / "service_from_command_center.log", "a")
-    return subprocess.Popen([sys.executable, "-m", "service", "--port", str(port)], cwd=PROJECT_ROOT, stdout=log,
+    python = sys.executable if not missing_packages() or not VENV_PYTHON.exists() else str(VENV_PYTHON)
+    return subprocess.Popen([python, "-m", "service", "--port", str(port)], cwd=PROJECT_ROOT, stdout=log,
                             stderr=subprocess.STDOUT, start_new_session=True)
 
 

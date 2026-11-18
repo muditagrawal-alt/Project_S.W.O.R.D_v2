@@ -37,3 +37,43 @@ def test_test_clip_profile_switch_sets_options():
         prof_box = next(s for s in at.selectbox if s.label.startswith("Profile"))
         size = next(s for s in at.select_slider if s.label == "Detector input size")
         assert size.value == list_profiles()[name]["weapon_imgsz"]
+
+
+# ── the app runs from the right Python and reloads edited project modules ──
+APP = VIEWS.parent / "app.py"
+
+
+def test_app_puts_project_on_pythonpath_so_edits_reload(monkeypatch):
+    """Streamlit only reloads edited modules next to the script or on PYTHONPATH; without the project root there, an
+    edit to pipeline/run.py left the running app with the old module (ImportError: cannot import name ...)."""
+    import os
+    monkeypatch.delenv("PYTHONPATH", raising=False)
+    at = st_testing.AppTest.from_file(str(APP), default_timeout=120).run()
+    assert not at.exception and not at.error
+    assert str(VIEWS.parent.parent) in os.environ["PYTHONPATH"].split(os.pathsep)
+
+
+def test_app_explains_missing_packages_instead_of_crashing(monkeypatch):
+    monkeypatch.syspath_prepend(str(VIEWS.parent))
+    import lib
+    monkeypatch.setitem(lib.REQUIRED_PACKAGES, "sword_no_such_module", "sword-no-such-package")
+    at = st_testing.AppTest.from_file(str(APP), default_timeout=120).run()
+    assert not at.exception
+    assert at.error and "sword-no-such-package" in at.error[0].value and "venv" in at.error[0].value
+
+
+def test_service_starts_with_the_venv_python_when_this_one_lacks_packages(monkeypatch, tmp_path):
+    monkeypatch.syspath_prepend(str(VIEWS.parent))
+    import lib
+    venv_python = tmp_path / "python"
+    venv_python.touch()
+    calls = []
+    monkeypatch.setattr(lib, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(lib, "VENV_PYTHON", venv_python)
+    monkeypatch.setattr(lib.subprocess, "Popen", lambda cmd, **kw: calls.append(cmd))
+    monkeypatch.setattr(lib, "missing_packages", lambda: ["sqlalchemy"])
+    lib.start_service_background(8123)
+    monkeypatch.setattr(lib, "missing_packages", lambda: [])
+    lib.start_service_background(8123)
+    import sys
+    assert calls[0][:3] == [str(venv_python), "-m", "service"] and calls[1][0] == sys.executable
